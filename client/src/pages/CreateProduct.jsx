@@ -187,6 +187,11 @@ const CreateProduct = () => {
       newErrors.category = 'Category is required';
     }
     
+    // Image validation - required for both new and edited products
+    if (!formData.image && !formData.imagePreview) {
+      newErrors.image = 'Product image is required';
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -389,6 +394,7 @@ const CreateProduct = () => {
                       error={!!errors.name}
                       helperText={errors.name}
                       variant="outlined"
+                      placeholder="Enter product name (e.g., iPhone 15 Pro)"
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -411,7 +417,9 @@ const CreateProduct = () => {
                       multiline
                       rows={4}
                       variant="outlined"
-                      placeholder="Describe your product..."
+                      InputProps={{
+                        placeholder: "Provide a detailed description of your product, including features, specifications, and benefits..."
+                      }}
                     />
                   </Grid>
 
@@ -426,6 +434,7 @@ const CreateProduct = () => {
                       helperText={errors.price}
                       type="number"
                       variant="outlined"
+                      placeholder="0.00"
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -447,6 +456,7 @@ const CreateProduct = () => {
                       helperText={errors.stock}
                       type="number"
                       variant="outlined"
+                      placeholder="0"
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -458,7 +468,7 @@ const CreateProduct = () => {
                   </Grid>
 
                   <Grid item xs={12}>
-                    <FormControl fullWidth required>
+                    <FormControl fullWidth error={!!errors.category}>
                       <InputLabel>Category</InputLabel>
                       <Select
                         name="category"
@@ -473,6 +483,11 @@ const CreateProduct = () => {
                           </MenuItem>
                         ))}
                       </Select>
+                      {errors.category && (
+                        <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 2 }}>
+                          {errors.category}
+                        </Typography>
+                      )}
                     </FormControl>
                   </Grid>
                 </Grid>

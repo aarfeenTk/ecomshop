@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { getProducts, deleteProduct } from '../redux/slices/productSlice';
 import { logout } from '../redux/slices/authSlice';
+
 import {
   Typography,
   Grid,
@@ -27,10 +28,7 @@ import {
   Breadcrumbs,
   Link,
   Skeleton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  CircularProgress,
   Alert,
   Snackbar,
   Menu,
@@ -57,8 +55,6 @@ import {
   Edit,
   Delete,
   Refresh,
-  MoreVert,
-  Visibility,
   ShoppingBag,
   Inventory,
   TrendingUp,
@@ -75,6 +71,7 @@ import {
   Notifications,
   Person
 } from '@mui/icons-material';
+import ConfirmDeleteProductModal from '../components/Modals/ConfirmDeleteModal';
 
 const AdminProductsList = () => {
   const theme = useTheme();
@@ -92,10 +89,9 @@ const AdminProductsList = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [filterCategory, setFilterCategory] = useState('all');
   const [sortBy, setSortBy] = useState('name');
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [selectedProductForMenu, setSelectedProductForMenu] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorElProfile, setAnchorElProfile] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState({});
   const drawerWidth = 280;
 
   // Data fetching
@@ -148,14 +144,20 @@ const AdminProductsList = () => {
   };
 
   const handleDeleteConfirm = () => {
-    dispatch(deleteProduct(selectedProduct._id))
+    const productId = selectedProduct._id;
+    setDeleteLoading(prev => ({ ...prev, [productId]: true }));
+    dispatch(deleteProduct(productId))
+      .unwrap()
       .then(() => {
-        setSnackbar({ open: true, message: 'Product deleted successfully', severity: 'success' });
         setDeleteDialogOpen(false);
         setSelectedProduct(null);
+        setSnackbar({ open: true, message: 'Product deleted successfully', severity: 'success' });
       })
       .catch(() => {
         setSnackbar({ open: true, message: 'Failed to delete product', severity: 'error' });
+      })
+      .finally(() => {
+        setDeleteLoading(prev => ({ ...prev, [productId]: false }));
       });
   };
 
@@ -164,24 +166,8 @@ const AdminProductsList = () => {
     setSelectedProduct(null);
   };
 
-  const handleMenuOpen = (event, product) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedProductForMenu(product);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setSelectedProductForMenu(null);
-  };
-
   const handleEditProduct = (product) => {
     navigate(`/admin/products/edit/${product._id}`);
-    handleMenuClose();
-  };
-
-  const handleViewProduct = (product) => {
-    navigate(`/admin/products/${product._id}`);
-    handleMenuClose();
   };
 
   // Menu items
@@ -636,43 +622,103 @@ const AdminProductsList = () => {
           </Grid>
 
           {/* Products Table */}
-          <Paper elevation={0} sx={{ borderRadius: 3, border: `1px solid ${theme.palette.divider}` }}>
-            <TableContainer>
-              <Table>
+          <Paper 
+            elevation={0} 
+            sx={{ 
+              borderRadius: 3, 
+              border: `1px solid ${theme.palette.divider}`,
+              overflow: 'hidden',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+            }}
+          >
+            <TableContainer sx={{ maxHeight: 600 }}>
+              <Table sx={{ '& .MuiTableCell-root': { py: 2 } }}>
                 <TableHead>
-                  <TableRow>
-                    <TableCell>Product</TableCell>
+                  <TableRow sx={{ 
+                    bgcolor: 'grey.50',
+                    '& .MuiTableCell-head': {
+                      fontWeight: 600,
+                      color: 'text.primary',
+                      fontSize: '0.875rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }
+                  }}>
+                    <TableCell sx={{ pl: 3 }}>Product</TableCell>
                     <TableCell>Category</TableCell>
                     <TableCell>Price</TableCell>
                     <TableCell>Stock</TableCell>
                     <TableCell>Status</TableCell>
                     <TableCell>Created</TableCell>
-                    <TableCell>Actions</TableCell>
+                    <TableCell sx={{ pr: 3 }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {paginatedProducts.map((product) => (
-                    <TableRow key={product._id} hover>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  {paginatedProducts.map((product, index) => (
+                    <TableRow 
+                      key={product._id} 
+                      hover
+                      sx={{ 
+                        '&:hover': { bgcolor: 'action.hover' },
+                        '& .MuiTableCell-body': {
+                          borderColor: 'divider',
+                          fontSize: '0.875rem'
+                        },
+                        transition: 'all 0.2s ease-in-out'
+                      }}
+                    >
+                      <TableCell sx={{ pl: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
                           {product.image ? (
                             <CardMedia
                               component="img"
                               image={product.image}
                               alt={product.name}
-                              sx={{ width: 50, height: 50, borderRadius: 2, objectFit: 'cover' }}
+                              sx={{ 
+                                width: 56, 
+                                height: 56, 
+                                borderRadius: 2, 
+                                objectFit: 'cover',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                border: '1px solid rgba(0,0,0,0.05)'
+                              }}
                             />
                           ) : (
-                            <Avatar sx={{ width: 50, height: 50, bgcolor: 'primary.light' }}>
+                            <Avatar 
+                              sx={{ 
+                                width: 56, 
+                                height: 56, 
+                                bgcolor: 'primary.light',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                              }}
+                            >
                               <ShoppingBag />
                             </Avatar>
                           )}
-                          <Box>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography 
+                              variant="body2" 
+                              sx={{ 
+                                fontWeight: 600,
+                                color: 'text.primary',
+                                fontSize: '0.9rem',
+                                mb: 0.5
+                              }}
+                            >
                               {product.name}
                             </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {product.description?.substring(0, 50)}...
+                            <Typography 
+                              variant="caption" 
+                              color="text.secondary"
+                              sx={{ 
+                                display: 'block',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                maxWidth: 200
+                              }}
+                            >
+                              {product.description?.substring(0, 60)}...
                             </Typography>
                           </Box>
                         </Box>
@@ -682,60 +728,105 @@ const AdminProductsList = () => {
                           label={product.category || 'Uncategorized'}
                           size="small"
                           variant="outlined"
+                          sx={{ 
+                            fontSize: '0.75rem',
+                            fontWeight: 500,
+                            borderColor: 'primary.main',
+                            color: 'primary.main',
+                            bgcolor: 'primary.50'
+                          }}
                         />
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>
-                        ${product.price?.toFixed(2)}
+                      <TableCell sx={{ fontWeight: 600, color: 'success.main' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="body2" sx={{ fontSize: '1rem' }}>
+                            ${product.price?.toFixed(2)}
+                          </Typography>
+                        </Box>
                       </TableCell>
                       <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="body2">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              fontWeight: 500,
+                              color: product.stock > 10 ? 'text.primary' : 'warning.main'
+                            }}
+                          >
                             {product.stock}
                           </Typography>
-                          {product.stock === 0 && (
-                            <Chip label="Out of Stock" size="small" color="error" />
-                          )}
-                          {product.stock > 0 && product.stock <= 10 && (
-                            <Chip label="Low Stock" size="small" color="warning" />
-                          )}
                         </Box>
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={product.stock > 0 ? 'Active' : 'Inactive'}
+                          label={product.stock > 0 ? 'In Stock' : 'Out of Stock'}
                           size="small"
-                          color={product.stock > 0 ? 'success' : 'default'}
+                          color={product.stock > 0 ? 'success' : 'error'}
+                          sx={{ 
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            ...(product.stock === 0 && {
+                              bgcolor: 'error.main',
+                              color: 'white'
+                            })
+                          }}
                         />
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary"
+                          sx={{ fontSize: '0.8rem' }}
+                        >
                           {new Date(product.createdAt).toLocaleDateString()}
                         </Typography>
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ pr: 3 }}>
                         <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Tooltip title="View">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleViewProduct(product)}
-                            >
-                              <Visibility />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Edit">
+                          <Tooltip title="Edit Product" arrow>
                             <IconButton
                               size="small"
                               onClick={() => handleEditProduct(product)}
+                              sx={{
+                                bgcolor: 'primary.50',
+                                color: 'primary.main',
+                                '&:hover': {
+                                  bgcolor: 'primary.main',
+                                  color: 'white',
+                                  transform: 'scale(1.05)'
+                                },
+                                transition: 'all 0.2s ease-in-out'
+                              }}
                             >
-                              <Edit />
+                              <Edit fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="More">
+                          <Tooltip title="Delete Product" arrow>
                             <IconButton
                               size="small"
-                              onClick={(e) => handleMenuOpen(e, product)}
+                              color="error"
+                              onClick={() => handleDeleteClick(product)}
+                              disabled={deleteLoading[product._id]}
+                              sx={{
+                                bgcolor: 'error.50',
+                                color: 'error.main',
+                                '&:hover': {
+                                  bgcolor: 'error.main',
+                                  color: 'white',
+                                  transform: 'scale(1.05)'
+                                },
+                                '&.Mui-disabled': {
+                                  bgcolor: 'grey.100',
+                                  color: 'grey.400'
+                                },
+                                transition: 'all 0.2s ease-in-out'
+                              }}
                             >
-                              <MoreVert />
+                              {deleteLoading[product._id] ? (
+                                <CircularProgress size={16} thickness={4} />
+                              ) : (
+                                <Delete fontSize="small" />
+                              )}
                             </IconButton>
                           </Tooltip>
                         </Box>
@@ -776,47 +867,15 @@ const AdminProductsList = () => {
         </MenuItem>
       </Menu>
 
-      {/* Context Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        PaperProps={{
-          sx: { width: 200 }
-        }}
-      >
-        <MenuItem onClick={() => handleViewProduct(selectedProductForMenu)}>
-          <Visibility sx={{ mr: 1 }} />
-          View Details
-        </MenuItem>
-        <MenuItem onClick={() => handleEditProduct(selectedProductForMenu)}>
-          <Edit sx={{ mr: 1 }} />
-          Edit Product
-        </MenuItem>
-        <MenuItem onClick={() => {
-          handleDeleteClick(selectedProductForMenu);
-          handleMenuClose();
-        }}>
-          <Delete sx={{ mr: 1 }} />
-          Delete Product
-        </MenuItem>
-      </Menu>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel}>
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to delete "{selectedProduct?.name}"? This action cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDeleteCancel}>Cancel</Button>
-          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
+      
+      {/* Delete Confirmation Modal */}
+      <ConfirmDeleteProductModal
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        product={selectedProduct}
+        loading={deleteLoading[selectedProduct?._id]}
+      />
 
       {/* Success/Error Snackbar */}
       <Snackbar
