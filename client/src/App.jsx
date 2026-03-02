@@ -15,7 +15,8 @@ import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import Orders from './pages/Orders';
 import AdminProductsList from './pages/AdminProductsList';
-import CreateProduct from './pages/CreateProduct';
+import AdminOrders from './pages/AdminOrders';
+import ProductForm from './pages/ProductForm';
 
 const theme = createTheme({
   palette: {
@@ -63,8 +64,9 @@ const AppContent = () => {
             <Route path="/orders" element={<Orders />} />
             <Route path="/admin" element={<AdminProductsList />} />
             <Route path="/admin/products" element={<AdminProductsList />} />
-            <Route path="/admin/products/create" element={<CreateProduct />} />
-            <Route path="/admin/products/edit/:id" element={<CreateProduct />} />
+            <Route path="/admin/products/create" element={<ProductForm />} />
+            <Route path="/admin/products/edit/:id" element={<ProductForm />} />
+            <Route path="/admin/orders" element={<AdminOrders />} />
           </Routes>
         </Container>
       </Box>

@@ -25,62 +25,37 @@ import {
   TableRow,
   TablePagination,
   Chip,
-  Breadcrumbs,
-  Link,
-  Skeleton,
   CircularProgress,
   Alert,
   Snackbar,
-  Menu,
+  Menu as MenuIcon,
   MenuItem,
   FormControl,
   InputLabel,
   Select,
   Avatar,
   Tooltip,
-  Drawer,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
   Toolbar,
-  AppBar,
-  Badge,
-  Divider,
-  useMediaQuery
 } from '@mui/material';
 import {
   Search,
   Add,
   Edit,
   Delete,
-  Refresh,
   ShoppingBag,
   Inventory,
   TrendingUp,
-  FilterList,
-  ArrowBack,
   Store,
-  Menu as MenuIcon,
-  Dashboard,
-  Assignment,
-  People,
-  Settings,
-  Logout,
-  ChevronRight,
-  Notifications,
-  Person
 } from '@mui/icons-material';
 import ConfirmDeleteProductModal from '../components/Modals/ConfirmDeleteModal';
+import AdminSidebar from '../components/AdminSidebar';
+import AdminAppBar from '../components/AdminAppBar';
 
 const AdminProductsList = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const dispatch = useDispatch();
   const { products, loading } = useSelector(state => state.products);
-  
-  // State management
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -90,38 +65,15 @@ const AdminProductsList = () => {
   const [filterCategory, setFilterCategory] = useState('all');
   const [sortBy, setSortBy] = useState('name');
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [anchorElProfile, setAnchorElProfile] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState({});
   const drawerWidth = 280;
 
-  // Data fetching
   useEffect(() => {
     dispatch(getProducts());
   }, [dispatch]);
 
-  // Event handlers
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
-  };
-
-  const handleNavigation = (path) => {
-    navigate(path);
-    if (isMobile) {
-      setMobileOpen(false);
-    }
-  };
-
-  const handleProfileMenuOpen = (event) => {
-    setAnchorElProfile(event.currentTarget);
-  };
-
-  const handleProfileMenuClose = () => {
-    setAnchorElProfile(null);
-  };
-
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate('/login');
   };
 
   const handleSearch = (event) => {
@@ -170,21 +122,6 @@ const AdminProductsList = () => {
     navigate(`/admin/products/edit/${product._id}`);
   };
 
-  // Menu items
-  const menuItems = [
-    {
-      text: 'Products',
-      icon: <ShoppingBag />,
-      path: '/admin/products',
-    },
-    {
-      text: 'Orders',
-      icon: <Assignment />,
-      path: '/admin/orders',
-    }
-  ];
-
-  // Filter and sort products
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.description?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -207,244 +144,27 @@ const AdminProductsList = () => {
     }
   });
 
-  // Get unique categories
   const categories = ['all', ...new Set(products.map(product => product.category).filter(Boolean))];
 
-  // Pagination
   const paginatedProducts = sortedProducts.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
 
-  // Drawer content
-  const drawer = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Toolbar sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar sx={{ bgcolor: 'primary.main' }}>
-            <Store />
-          </Avatar>
-          <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
-            Admin Panel
-          </Typography>
-        </Box>
-      </Toolbar>
-      <Box sx={{ flex: 1, py: 2 }}>
-        <List sx={{ px: 2 }}>
-          {menuItems.map((item) => (
-            <ListItem
-              key={item.text}
-              button
-              onClick={() => handleNavigation(item.path)}
-              sx={{
-                borderRadius: 2,
-                mb: 1,
-                '&:hover': {
-                  backgroundColor: 'primary.main',
-                  color: 'white',
-                  '& .MuiListItemIcon-root': {
-                    color: 'white'
-                  },
-                  '& .MuiListItemText-primary': {
-                    color: 'white'
-                  }
-                }
-              }}
-            >
-              <ListItemIcon sx={{ minWidth: 40, color: 'text.secondary' }}>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText 
-                primary={item.text} 
-                sx={{ 
-                  '& .MuiListItemText-primary': {
-                    fontWeight: 600
-                  }
-                }} 
-              />
-              <ChevronRight sx={{ ml: 'auto', color: 'text.secondary' }} />
-            </ListItem>
-          ))}
-        </List>
-      </Box>
-      <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
-        <Button
-          fullWidth
-          variant="outlined"
-          startIcon={<Logout />}
-          onClick={handleLogout}
-          sx={{ justifyContent: 'flex-start' }}
-        >
-          Logout
-        </Button>
-      </Box>
-    </Box>
-  );
-
-  // Loading skeleton
-  const renderSkeleton = () => (
-    <Grid container spacing={3}>
-      {Array.from({ length: rowsPerPage }).map((_, index) => (
-        <Grid item xs={12} key={index}>
-          <Skeleton variant="rectangular" height={80} sx={{ borderRadius: 2 }} />
-        </Grid>
-      ))}
-    </Grid>
-  );
-
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
-        {/* App Bar */}
-        <AppBar
-          position="fixed"
-          sx={{
-            width: { md: `calc(100% - ${drawerWidth}px)` },
-            ml: { md: `${drawerWidth}px` },
-            bgcolor: 'background.paper',
-            color: 'text.primary',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
-            borderBottom: `1px solid ${theme.palette.divider}`
-          }}
-        >
-          <Toolbar>
-            <IconButton
-              color="inherit"
-              aria-label="open drawer"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{ mr: 2, display: { md: 'none' } }}
-            >
-              <MenuIcon />
-            </IconButton>
-            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600 }}>
-              Products
-            </Typography>
-            <Box sx={{ flex: 1 }} />
-            <IconButton
-              color="inherit"
-              onClick={handleProfileMenuOpen}
-              sx={{ ml: 1 }}
-            >
-              <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
-                <Person />
-              </Avatar>
-            </IconButton>
-          </Toolbar>
-        </AppBar>
-
-        {/* Side Drawer */}
-        <Box
-          component="nav"
-          sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
-        >
-          <Drawer
-            variant={isMobile ? 'temporary' : 'persistent'}
-            open={isMobile ? mobileOpen : true}
-            onClose={handleDrawerToggle}
-            ModalProps={{
-              keepMounted: true
-            }}
-            sx={{
-              '& .MuiDrawer-paper': {
-                boxSizing: 'border-box',
-                width: drawerWidth,
-                borderRight: `1px solid ${theme.palette.divider}`,
-                boxShadow: '2px 0 8px rgba(0,0,0,0.15)'
-              }
-            }}
-          >
-            {drawer}
-          </Drawer>
-        </Box>
-
-        {/* Main Content */}
-        <Box
-          component="main"
-          sx={{
-            flexGrow: 1,
-            width: { md: `calc(100% - ${drawerWidth}px)` },
-            minHeight: '100vh'
-          }}
-        >
-          <Toolbar />
-          <Box sx={{ p: 3 }}>
-            <Typography variant="h4" gutterBottom>
-              Products
-            </Typography>
-            {renderSkeleton()}
-          </Box>
-        </Box>
-      </Box>
-    );
-  }
-
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
-      {/* App Bar */}
-      <AppBar
-        position="fixed"
-        sx={{
-          width: { md: `calc(100% - ${drawerWidth}px)` },
-          ml: { md: `${drawerWidth}px` },
-          bgcolor: 'background.paper',
-          color: 'text.primary',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
-          borderBottom: `1px solid ${theme.palette.divider}`
-        }}
-      >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600 }}>
-            Products Management
-          </Typography>
-          <Box sx={{ flex: 1 }} />
-          <IconButton
-            color="inherit"
-            onClick={handleProfileMenuOpen}
-            sx={{ ml: 1 }}
-          >
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
-              <Person />
-            </Avatar>
-          </IconButton>
-        </Toolbar>
-      </AppBar>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default', marginTop:3 }}>
+      <AdminAppBar
+        title="Products Management"
+        handleDrawerToggle={handleDrawerToggle}
+        drawerWidth={drawerWidth}
+      />
 
-      {/* Side Drawer */}
-      <Box
-        component="nav"
-        sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
-      >
-        <Drawer
-          variant={isMobile ? 'temporary' : 'persistent'}
-          open={isMobile ? mobileOpen : true}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true
-          }}
-          sx={{
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              width: drawerWidth,
-              borderRight: `1px solid ${theme.palette.divider}`,
-              boxShadow: '2px 0 8px rgba(0,0,0,0.15)'
-            }
-          }}
-        >
-          {drawer}
-        </Drawer>
-      </Box>
+      <AdminSidebar
+        mobileOpen={mobileOpen}
+        handleDrawerToggle={handleDrawerToggle}
+        drawerWidth={drawerWidth}
+      />
 
-      {/* Main Content */}
       <Box
         component="main"
         sx={{
@@ -454,21 +174,22 @@ const AdminProductsList = () => {
         }}
       >
         <Toolbar />
-        
-        <Box sx={{ p: 3 }}>
-          {/* Breadcrumbs */}
-          <Breadcrumbs sx={{ mb: 3 }}>
-            <Link color="inherit" href="/admin/dashboard">
-              Admin
-            </Link>
-            <Typography color="text.primary">Products</Typography>
-          </Breadcrumbs>
 
-          {/* Page Header */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary' }}>
-              Products Management
-            </Typography>
+        <Box sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+             <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <Store/>
+                    </Avatar>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                        Products Management
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Manage customer products
+                      </Typography>
+                    </Box>
+                  </Box>
             <Button
               variant="contained"
               startIcon={<Add />}
@@ -479,7 +200,6 @@ const AdminProductsList = () => {
             </Button>
           </Box>
 
-          {/* Search and Filters */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid item xs={12} md={4}>
               <TextField
@@ -528,20 +248,9 @@ const AdminProductsList = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={2}>
-              <Button
-                fullWidth
-                variant="outlined"
-                startIcon={<Refresh />}
-                onClick={() => dispatch(getProducts())}
-                sx={{ height: '40px' }}
-              >
-                Refresh
-              </Button>
-            </Grid>
+            
           </Grid>
 
-          {/* Stats Cards */}
           <Grid container spacing={3} sx={{ mb: 3 }}>
             <Grid item xs={12} sm={6} md={3}>
               <Card elevation={0} sx={{ borderRadius: 3, border: `1px solid ${theme.palette.divider}` }}>
@@ -621,7 +330,6 @@ const AdminProductsList = () => {
             </Grid>
           </Grid>
 
-          {/* Products Table */}
           <Paper 
             elevation={0} 
             sx={{ 
@@ -837,7 +545,6 @@ const AdminProductsList = () => {
               </Table>
             </TableContainer>
             
-            {/* Pagination */}
             <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
               <TablePagination
                 rowsPerPageOptions={[5, 10, 25, 50]}
@@ -853,22 +560,7 @@ const AdminProductsList = () => {
         </Box>
       </Box>
 
-      {/* Profile Menu */}
-      <Menu
-        anchorEl={anchorElProfile}
-        open={Boolean(anchorElProfile)}
-        onClose={handleProfileMenuClose}
-      >
-        <MenuItem onClick={handleLogout}>
-          <ListItemIcon>
-            <Logout fontSize="small" />
-          </ListItemIcon>
-          Logout
-        </MenuItem>
-      </Menu>
-
       
-      {/* Delete Confirmation Modal */}
       <ConfirmDeleteProductModal
         open={deleteDialogOpen}
         onClose={handleDeleteCancel}
@@ -877,7 +569,6 @@ const AdminProductsList = () => {
         loading={deleteLoading[selectedProduct?._id]}
       />
 
-      {/* Success/Error Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}

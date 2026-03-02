@@ -16,12 +16,14 @@ import {
   Alert,
   CircularProgress,
   useTheme,
+  useMediaQuery,
   InputAdornment,
   Card,
   CardMedia,
   IconButton,
   Divider,
   Chip,
+  Toolbar,
   Breadcrumbs,
   Link,
   Avatar
@@ -38,6 +40,8 @@ import {
 } from '@mui/icons-material';
 import { createProduct, updateProduct } from '../redux/slices/productSlice';
 import { getProducts } from '../redux/slices/productSlice';
+import AdminSidebar from '../components/AdminSidebar';
+import AdminAppBar from '../components/AdminAppBar';
 
 const CreateProduct = () => {
   const theme = useTheme();
@@ -61,6 +65,15 @@ const CreateProduct = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Drawer management
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const drawerWidth = 280;
+
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
 
   useEffect(() => {
     dispatch(getProducts());
@@ -243,41 +256,49 @@ const CreateProduct = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Breadcrumbs */}
-      <Breadcrumbs sx={{ mb: 3 }}>
-        <Link color="inherit" href="/admin/products">
-          Admin
-        </Link>
-        <Link color="inherit" href="/admin/products">
-          Products
-        </Link>
-        <Typography color="text.primary">
-          {isEditing ? 'Edit Product' : 'Create New Product'}
-        </Typography>
-      </Breadcrumbs>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+      <AdminAppBar
+        title={isEditing ? 'Edit Product' : 'Create Product'}
+        handleDrawerToggle={handleDrawerToggle}
+        drawerWidth={drawerWidth}
+      />
 
-      {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-        <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
-          <Store />
-        </Avatar>
-        <Box sx={{ flex: 1 }}>
-          <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary' }}>
-            {isEditing ? 'Edit Product' : 'Create New Product'}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {isEditing ? 'Update product information' : 'Add a new product to your inventory'}
-          </Typography>
-        </Box>
-        <Button
-          startIcon={<ArrowBack />}
-          onClick={() => navigate('/admin/products')}
-          sx={{ textTransform: 'none' }}
-        >
-          Back to Products
-        </Button>
-      </Box>
+      <AdminSidebar
+        mobileOpen={mobileOpen}
+        handleDrawerToggle={handleDrawerToggle}
+        drawerWidth={drawerWidth}
+      />
+
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          width: { md: `calc(100% - ${drawerWidth}px)` },
+          minHeight: '100vh'
+        }}
+      >
+        <Toolbar />
+
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          {/* Header */}
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+            <Button
+              startIcon={<ArrowBack />}
+              onClick={() => navigate('/admin/products')}
+              sx={{ textTransform: 'none', mr: 2, minWidth: 'auto' }}
+            />
+            <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+              <Store />
+            </Avatar>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                {isEditing ? 'Edit Product' : 'Create New Product'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {isEditing ? 'Update product information' : 'Add a new product to your inventory'}
+              </Typography>
+            </Box>
+          </Box>
 
       <Grid container spacing={4}>
         {/* Left Column - Image Upload */}
@@ -527,7 +548,9 @@ const CreateProduct = () => {
           </Paper>
         </Grid>
       </Grid>
-    </Container>
+        </Container>
+      </Box>
+    </Box>
   );
 };
 

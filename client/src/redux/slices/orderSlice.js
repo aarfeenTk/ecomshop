@@ -68,6 +68,7 @@ const orderSlice = createSlice({
     order: null,
     loading: false,
     error: null,
+    updatingOrderId: null,
   },
   reducers: {
     clearError: (state) => {
@@ -104,11 +105,19 @@ const orderSlice = createSlice({
       .addCase(getOrders.fulfilled, (state, action) => {
         state.orders = action.payload;
       })
+      .addCase(updateOrderStatus.pending, (state, action) => {
+        state.updatingOrderId = action.meta.arg.id;
+      })
       .addCase(updateOrderStatus.fulfilled, (state, action) => {
+        state.updatingOrderId = null;
         const index = state.orders.findIndex(o => o._id === action.payload._id);
         if (index !== -1) {
           state.orders[index] = action.payload;
         }
+      })
+      .addCase(updateOrderStatus.rejected, (state, action) => {
+        state.updatingOrderId = null;
+        state.error = action.payload;
       });
   },
 });
