@@ -6,6 +6,8 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -59,14 +61,14 @@ const AppContent = () => {
             <Route path="/register" element={<Register />} />
             <Route path="/products" element={<Products />} />
             <Route path="/products/:id" element={<ProductDetail />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/orders" element={<Orders />} />
-            <Route path="/admin" element={<AdminProductsList />} />
-            <Route path="/admin/products" element={<AdminProductsList />} />
-            <Route path="/admin/products/create" element={<ProductForm />} />
-            <Route path="/admin/products/edit/:id" element={<ProductForm />} />
-            <Route path="/admin/orders" element={<AdminOrders />} />
+            <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+            <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+            <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+            <Route path="/admin" element={<AdminRoute><AdminProductsList /></AdminRoute>} />
+            <Route path="/admin/products" element={<AdminRoute><AdminProductsList /></AdminRoute>} />
+            <Route path="/admin/products/create" element={<AdminRoute><ProductForm /></AdminRoute>} />
+            <Route path="/admin/products/edit/:id" element={<AdminRoute><ProductForm /></AdminRoute>} />
+            <Route path="/admin/orders" element={<AdminRoute><AdminOrders /></AdminRoute>} />
           </Routes>
         </Container>
       </Box>

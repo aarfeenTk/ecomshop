@@ -1,17 +1,32 @@
 import { Typography, Grid, Card, CardContent, CardMedia, Button, Box, Container, Skeleton } from '@mui/material';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { getProducts } from '../redux/slices/productSlice';
 import { Link } from 'react-router-dom';
 
 const Home = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const products = useSelector(state => state.products?.products || []);
   const loading = useSelector(state => state.products?.loading || false);
+  const { user } = useSelector(state => state.auth);
 
   useEffect(() => {
     dispatch(getProducts());
   }, [dispatch]);
+
+  useEffect(() => {
+    const isAdminUser = user?.isAdmin === true || user?.role === 'admin';
+    if (isAdminUser) {
+      navigate('/admin/products', { replace: true });
+    }
+  }, [user, navigate]);
+
+  const isAdminUser = user?.isAdmin === true || user?.role === 'admin';
+  if (isAdminUser) {
+    return null;
+  }
 
   if (loading) {
     return (
