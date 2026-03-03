@@ -1,5 +1,5 @@
-import { AppBar, Toolbar, Typography, Button, IconButton, Badge, Box, useMediaQuery, useTheme, Menu, MenuItem, ListItemIcon, Divider } from '@mui/material';
-import { ShoppingCart, Menu as MenuIcon, AccountCircle, Person } from '@mui/icons-material';
+import { AppBar, Toolbar, Typography, Button, IconButton, Badge, Box, useMediaQuery, useTheme, Menu, MenuItem } from '@mui/material';
+import { ShoppingCart, Menu as MenuIcon, AccountCircle } from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { logout } from '../redux/slices/authSlice';
@@ -87,7 +87,6 @@ const Header = () => {
           </Typography>
         </Box>
 
-        {/* Desktop Navigation */}
         <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1, ml: 'auto' }}>
           <Button 
             color="primary" 

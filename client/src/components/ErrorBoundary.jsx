@@ -1,5 +1,5 @@
 import React from 'react';
-import { Typography, Button, Container, Box, Paper, Alert, IconButton } from '@mui/material';
+import { Typography, Button, Container, Box, Paper, Alert } from '@mui/material';
 import { Refresh, BugReport } from '@mui/icons-material';
 
 class ErrorBoundary extends React.Component {
@@ -18,23 +18,11 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
-    console.error('Component stack:', errorInfo.componentStack);
-    
     this.setState({
       error: error,
       errorInfo: errorInfo,
       errorCount: this.state.errorCount + 1
     });
-
-    // Log to console for debugging
-    if (process.env.NODE_ENV === 'development') {
-      console.group('🐛 Error Boundary Caught Error');
-      console.error('Error:', error);
-      console.error('Error Info:', errorInfo);
-      console.error('Component Stack:', errorInfo.componentStack);
-      console.groupEnd();
-    }
   }
 
   handleRetry = () => {

@@ -112,7 +112,6 @@ const Products = () => {
         Find exactly what you're looking for
       </Typography>
 
-      {/* Search and Filter Section */}
       <Box sx={{ mb: 4, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
         <TextField
           fullWidth
@@ -173,7 +172,6 @@ const Products = () => {
         )}
       </Box>
 
-      {/* Products Grid */}
       {filteredProducts.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <Typography variant="h6" color="text.secondary" gutterBottom>

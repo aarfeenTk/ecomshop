@@ -7,7 +7,6 @@ const initialState = {
   error: null,
 };
 
-// Check for existing authentication on app load
 const checkAuth = () => {
   const token = localStorage.getItem('token');
   const user = localStorage.getItem('user');
@@ -23,14 +22,12 @@ const checkAuth = () => {
   return null;
 };
 
-// Set initial user from localStorage if available
 const persistedUser = checkAuth();
 const initialStateWithPersist = {
   ...initialState,
   user: persistedUser,
 };
 
-// Async thunks
 export const login = createAsyncThunk(
   'auth/login',
   async (credentials, { rejectWithValue }) => {

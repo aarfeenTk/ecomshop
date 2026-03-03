@@ -9,13 +9,11 @@ const useCart = () => {
   const hasFetched = useRef(false);
 
   useEffect(() => {
-    // Only fetch cart if user exists, not currently loading, and hasn't been fetched yet
     if (user && !loading && !hasFetched.current) {
       dispatch(getCart());
       hasFetched.current = true;
     }
     
-    // Reset fetch flag when user logs out
     if (!user) {
       hasFetched.current = false;
     }

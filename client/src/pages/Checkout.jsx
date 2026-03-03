@@ -56,7 +56,6 @@ const Checkout = () => {
       [name]: value
     }));
     
-    // Clear error for this field
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -111,9 +110,7 @@ const Checkout = () => {
       if (result.error) {
         setErrors({ submit: result.error.message || 'Failed to create order' });
       } else {
-        // Clear cart after successful order creation
         dispatch(clearCart());
-        // Refresh products to update stock levels
         dispatch(getProducts());
         navigate('/orders');
       }

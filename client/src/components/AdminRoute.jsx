@@ -9,7 +9,6 @@ const AdminRoute = ({ children }) => {
   const navigate = useNavigate();
 
   if (!user) {
-    console.log('AdminRoute: User not authenticated, redirecting to login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

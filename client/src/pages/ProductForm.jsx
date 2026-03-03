@@ -63,11 +63,7 @@ const CreateProduct = () => {
 
   const [errors, setErrors] = useState({});
   const [isEditing, setIsEditing] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
 
-  // Drawer management
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
   const drawerWidth = 280;
 
@@ -115,7 +111,6 @@ const CreateProduct = () => {
       [name]: value
     }));
 
-    // Clear error for this field
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -127,7 +122,6 @@ const CreateProduct = () => {
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
     if (file) {
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         setErrors(prev => ({
           ...prev,
@@ -136,7 +130,6 @@ const CreateProduct = () => {
         return;
       }
 
-      // Validate file size (5MB max)
       if (file.size > 5 * 1024 * 1024) {
         setErrors(prev => ({
           ...prev,
@@ -145,7 +138,6 @@ const CreateProduct = () => {
         return;
       }
 
-      // Create preview
       const reader = new FileReader();
       reader.onload = (e) => {
         setFormData(prev => ({
@@ -200,7 +192,6 @@ const CreateProduct = () => {
       newErrors.category = 'Category is required';
     }
     
-    // Image validation - required for both new and edited products
     if (!formData.image && !formData.imagePreview) {
       newErrors.image = 'Product image is required';
     }
@@ -219,7 +210,6 @@ const CreateProduct = () => {
     try {
       let imageUrl = formData.imagePreview;
       
-      // If we have a file, convert it to base64
       if (formData.image && formData.image instanceof File) {
         imageUrl = await new Promise((resolve, reject) => {
           const reader = new FileReader();

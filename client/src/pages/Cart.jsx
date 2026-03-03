@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
@@ -57,9 +57,8 @@ const Cart = () => {
   };
 
   const handleQuantityInputChange = (productId, value) => {
-    // Allow empty input or valid numbers
     if (value === '' || value === '-') {
-      return; // Don't update while user is typing
+      return;
     }
     
     const quantity = parseInt(value, 10);
