@@ -82,8 +82,8 @@ const Products = () => {
   if (loading) {
     return (
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 4 }}>
-          All Products
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 0 }}>
+          Discover Products
         </Typography>
         <Grid container spacing={3}>
           {Array.from({ length: 8 }).map((_, index) => (
@@ -105,8 +105,11 @@ const Products = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 4 }}>
-        All Products
+      <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 1 }}>
+        Discover Products
+      </Typography>
+      <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+        Find exactly what you're looking for
       </Typography>
 
       {/* Search and Filter Section */}

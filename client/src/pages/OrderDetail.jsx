@@ -204,31 +204,112 @@ const OrderDetail = () => {
             {/* Order Progress Tracker */}
             <Grid item xs={12}>
               <Paper
-                elevation={1}
+                elevation={2}
                 sx={{
-                  p: 3,
-                  borderRadius: 2
+                  p: 4,
+                  borderRadius: 3,
+                  background: `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${theme.palette.grey[50]} 100%)`,
+                  border: `1px solid ${theme.palette.divider}`,
+                  position: 'relative',
+                  overflow: 'hidden',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 4,
+                    background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`
+                  }
                 }}
               >
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                  Order Progress
-                </Typography>
-                <Stepper activeStep={getStepIndex(order.status)} orientation="vertical">
-                  {steps.map((step, index) => (
-                    <Step key={step.label}>
-                      <StepLabel
-                        icon={step.icon}
-                        sx={{
-                          '& .MuiStepLabel-label': {
-                            fontWeight: 600
-                          }
-                        }}
-                      >
-                        {step.label}
-                      </StepLabel>
-                    </Step>
-                  ))}
-                </Stepper>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: '50%',
+                      bgcolor: 'primary.main',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: 2
+                    }}
+                  >
+                    <LocalShipping sx={{ color: 'white', fontSize: 20 }} />
+                  </Box>
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                    Order Progress
+                  </Typography>
+                </Box>
+
+                {/* Progress Bar */}
+                <Box sx={{ mb: 4 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    {steps.map((step, index) => (
+                      <Box key={step.label} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                        <Box
+                          sx={{
+                            width: 50,
+                            height: 50,
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            bgcolor: index <= getStepIndex(order.status) ? 'primary.main' : 'grey.300',
+                            color: index <= getStepIndex(order.status) ? 'white' : 'text.secondary',
+                            boxShadow: index <= getStepIndex(order.status) ? 3 : 1,
+                            transition: 'all 0.3s ease',
+                            border: `2px solid ${index <= getStepIndex(order.status) ? theme.palette.primary.main : theme.palette.grey[300]}`,
+                            transform: index <= getStepIndex(order.status) ? 'scale(1.1)' : 'scale(1)',
+                          }}
+                        >
+                          {step.icon}
+                        </Box>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            mt: 1,
+                            textAlign: 'center',
+                            fontWeight: index <= getStepIndex(order.status) ? 600 : 400,
+                            color: index <= getStepIndex(order.status) ? 'primary.main' : 'text.secondary',
+                            fontSize: '0.8rem'
+                          }}
+                        >
+                          {step.label}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+
+                  {/* Progress Line */}
+                  <Box sx={{ position: 'relative', mt: 2 }}>
+                    <Box
+                      sx={{
+                        height: 4,
+                        bgcolor: 'grey.200',
+                        borderRadius: 2,
+                        position: 'absolute',
+                        top: 0,
+                        left: 25,
+                        right: 25,
+                      }}
+                    />
+                    <Box
+                      sx={{
+                        height: 4,
+                        bgcolor: 'primary.main',
+                        borderRadius: 2,
+                        position: 'absolute',
+                        top: 0,
+                        left: 25,
+                        width: `${(getStepIndex(order.status) / (steps.length - 1)) * 100}%`,
+                        transition: 'width 0.5s ease-in-out',
+                        boxShadow: `0 0 10px ${theme.palette.primary.main}40`
+                      }}
+                    />
+                  </Box>
+                </Box>
               </Paper>
             </Grid>
 
@@ -329,22 +410,66 @@ const OrderDetail = () => {
                         alignItems: 'center',
                         p: 2,
                         borderRadius: 2,
-                        bgcolor: 'grey.50'
+                        bgcolor: 'grey.50',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          bgcolor: 'grey.100',
+                          boxShadow: 1
+                        }
                       }}
                     >
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
-                        <Inventory sx={{ color: 'text.secondary', fontSize: 20 }} />
-                        <Box>
-                          <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {/* Product Image with Fallback */}
+                        {item.product?.image ? (
+                          <Box
+                            component="img"
+                            src={item.product.image}
+                            alt={item.product.name}
+                            sx={{
+                              width: 60,
+                              height: 60,
+                              objectFit: 'cover',
+                              borderRadius: 2,
+                              border: '1px solid',
+                              borderColor: 'divider'
+                            }}
+                          />
+                        ) : (
+                          <Box
+                            sx={{
+                              width: 60,
+                              height: 60,
+                              borderRadius: 2,
+                              bgcolor: 'primary.light',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              border: '1px solid',
+                              borderColor: 'divider'
+                            }}
+                          >
+                            <Inventory sx={{ color: 'primary.contrastText', fontSize: 24 }} />
+                          </Box>
+                        )}
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body1" sx={{ fontWeight: 600, mb: 0.5 }}>
                             {item.product?.name || 'Product'}
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            Quantity: {item.quantity} × ${item.price}
+                            Quantity: {item.quantity} × ${item.price?.toFixed(2) || '0.00'}
                           </Typography>
+                          {item.product?.stock && item.product.stock < item.quantity && (
+                            <Chip
+                              label="Low stock"
+                              size="small"
+                              color="warning"
+                              sx={{ mt: 0.5, fontSize: '0.7rem', height: 20 }}
+                            />
+                          )}
                         </Box>
                       </Box>
-                      <Typography variant="h6" color="primary.main" sx={{ fontWeight: 700 }}>
-                        ${(item.price * item.quantity).toFixed(2)}
+                      <Typography variant="h6" color="primary.main" sx={{ fontWeight: 700, ml: 2 }}>
+                        ${(item.price * item.quantity)?.toFixed(2) || '0.00'}
                       </Typography>
                     </Box>
                   ))}

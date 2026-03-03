@@ -219,6 +219,7 @@ const Cart = () => {
                           <Remove fontSize="small" />
                         </IconButton>
                         <TextField
+                          key={`quantity-${item._id}-${item.quantity}`} // Force re-render when quantity changes
                           size="small"
                           type="number"
                           defaultValue={item.quantity}

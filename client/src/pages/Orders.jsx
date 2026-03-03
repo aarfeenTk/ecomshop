@@ -22,7 +22,7 @@ import {
   LocalShipping,
   CheckCircle,
   Pending,
-  ShoppingCart
+  ShoppingCart,
 } from '@mui/icons-material';
 
 const Orders = () => {
@@ -75,7 +75,13 @@ const Orders = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="lg" sx={{ py: 2 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, mb: 0 }}>
+          My Orders
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+          View and track your orders
+        </Typography>
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
           <CircularProgress size={60} />
         </Box>
@@ -84,9 +90,12 @@ const Orders = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h3" gutterBottom sx={{ fontWeight: 700, mb: 4 }}>
+    <Container maxWidth="lg" sx={{ py: 2 }}>
+      <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 , mb:0}}>
         My Orders
+      </Typography>
+      <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+        View and track your orders
       </Typography>
 
       {orders.length === 0 ? (
@@ -129,7 +138,6 @@ const Orders = () => {
               <Card
                 elevation={1}
                 sx={{
-                  height: '100%',
                   borderRadius: 2,
                   transition: 'all 0.3s ease',
                   '&:hover': {
@@ -138,7 +146,7 @@ const Orders = () => {
                   },
                 }}
               >
-                <CardContent sx={{ p: 3 }}>
+                <CardContent sx={{ p: 2.5 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                     <Box>
                       <Typography

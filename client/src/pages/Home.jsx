@@ -1,4 +1,4 @@
-import { Typography, Grid, Card, CardContent, CardMedia, Button, Box, Container, Skeleton } from '@mui/material';
+import { Typography, Grid, Card, CardContent, CardMedia, Button, Box, Container } from '@mui/material';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -28,70 +28,76 @@ const Home = () => {
     return null;
   }
 
-  if (loading) {
-    return (
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Typography variant="h4" gutterBottom>Loading Products...</Typography>
-        <Grid container spacing={3}>
-          {Array.from({ length: 6 }).map((_, index) => (
-            <Grid item xs={12} sm={6} md={4} key={index}>
-              <Card elevation={2}>
-                <Skeleton variant="rectangular" height={140} />
-                <CardContent>
-                  <Skeleton variant="text" height={30} />
-                  <Skeleton variant="text" width="60%" height={20} />
-                  <Skeleton variant="rectangular" height={36} width={100} sx={{ mt: 2 }} />
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
-    );
-  }
+
 
   return (
-    <div>
-      <Box sx={{ textAlign: 'center', py: 8, background: 'linear-gradient(45deg, #3f51b5 30%, #f50057 90%)', color: 'white' }}>
-        <Container maxWidth="md">
-          <Typography variant="h2" gutterBottom>
-            Welcome to Our E-Commerce Store
-          </Typography>
-          <Typography variant="h5" gutterBottom>
-            Discover amazing products at great prices
-          </Typography>
-          <Button variant="contained" color="secondary" size="large" component={Link} to="/products" sx={{ mt: 2 }}>
-            Shop Now
-          </Button>
-        </Container>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box sx={{ textAlign: 'center', mb: 4 }}>
+        <Typography variant="h3" gutterBottom sx={{ fontWeight: 700 }}>
+          Welcome to Our Store
+        </Typography>
+        <Typography variant="h6" color="text.secondary" sx={{ mb: 3 }}>
+          Discover amazing products at great prices
+        </Typography>
+        <Button
+          variant="contained"
+          size="large"
+          component={Link}
+          to="/products"
+          sx={{
+            px: 4,
+            py: 1.5,
+            borderRadius: 2,
+            textTransform: 'none',
+            fontWeight: 600
+          }}
+        >
+          Shop Now
+        </Button>
       </Box>
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Typography variant="h4" gutterBottom>Featured Products</Typography>
-        <Grid container spacing={3}>
-          {products.slice(0, 6).map(product => (
-            <Grid item xs={12} sm={6} md={4} key={product._id}>
-              <Card elevation={2} sx={{ '&:hover': { transform: 'scale(1.05)', transition: 'transform 0.3s', boxShadow: 6 } }}>
-                <CardMedia
-                  component="img"
-                  height="140"
-                  image={product.image}
-                  alt={product.name}
-                />
-                <CardContent>
-                  <Typography variant="h6">{product.name}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    ${product.price}
-                  </Typography>
-                  <Button component={Link} to={`/products/${product._id}`} variant="contained" sx={{ mt: 1 }}>
-                    View Details
-                  </Button>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
-    </div>
+
+      <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
+        Featured Products
+      </Typography>
+
+      <Grid container spacing={3}>
+        {products.slice(0, 6).map(product => (
+          <Grid item xs={12} sm={6} md={4} key={product._id}>
+            <Card elevation={2} sx={{ '&:hover': { boxShadow: 4 } }}>
+              <CardMedia
+                component="img"
+                height="200"
+                image={product.image || 'https://via.placeholder.com/300x200?text=Product'}
+                alt={product.name}
+              />
+              <CardContent>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  {product.name}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  {product.description}
+                </Typography>
+                <Typography variant="h6" color="primary.main" sx={{ fontWeight: 700, mb: 2 }}>
+                  ${product.price}
+                </Typography>
+                <Button
+                  component={Link}
+                  to={`/products/${product._id}`}
+                  variant="contained"
+                  fullWidth
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 600
+                  }}
+                >
+                  View Details
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    </Container>
   );
 };
 

@@ -1,7 +1,7 @@
 import { AppBar, Toolbar, Typography, Button, IconButton, Badge, Box, useMediaQuery, useTheme, Menu, MenuItem, ListItemIcon, Divider } from '@mui/material';
 import { ShoppingCart, Menu as MenuIcon, AccountCircle, Person } from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { logout } from '../redux/slices/authSlice';
 import { clearCart } from '../redux/slices/cartSlice';
 import useCart from '../hooks/useCart';
@@ -10,6 +10,7 @@ import { useState } from 'react';
 const Header = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const location = useLocation();
   const [anchorEl, setAnchorEl] = useState(null);
   const [userMenuAnchorEl, setUserMenuAnchorEl] = useState(null);
   const isMenuOpen = Boolean(anchorEl);
@@ -44,6 +45,11 @@ const Header = () => {
   const handleNavigation = (path) => {
     navigate(path);
     handleMobileMenuClose();
+  };
+
+  // Helper function to check if a route is active
+  const isActiveRoute = (path) => {
+    return location.pathname === path;
   };
 
   return (
@@ -94,7 +100,24 @@ const Header = () => {
               px: 2,
               py: 1,
               borderRadius: 2,
-              '&:hover': { bgcolor: 'rgba(63, 81, 181, 0.08)' }
+              position: 'relative',
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                bottom: 0,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: isActiveRoute('/products') ? '100%' : '0%',
+                height: '2px',
+                bgcolor: 'primary.main',
+                transition: 'width 0.3s ease'
+              },
+              '&:hover': { 
+                bgcolor: 'rgba(63, 81, 181, 0.08)',
+                '&::after': {
+                  width: '100%'
+                }
+              }
             }}
           >
             Products
@@ -112,10 +135,27 @@ const Header = () => {
                   px: 2,
                   py: 1,
                   borderRadius: 2,
-                  '&:hover': { bgcolor: 'rgba(63, 81, 181, 0.08)' }
+                  position: 'relative',
+                  '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    bottom: 0,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: isActiveRoute('/orders') ? '100%' : '0%',
+                    height: '2px',
+                    bgcolor: 'primary.main',
+                    transition: 'width 0.3s ease'
+                  },
+                  '&:hover': { 
+                    bgcolor: 'rgba(63, 81, 181, 0.08)',
+                    '&::after': {
+                      width: '100%'
+                    }
+                  }
                 }}
               >
-                Orders
+                My Orders
               </Button>
               {user.role === 'admin' && (
                 <Button 
