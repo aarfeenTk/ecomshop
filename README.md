@@ -82,6 +82,13 @@ A production-style MERN Stack E-Commerce Application with clean architecture, pr
 
 The application will be available at `http://localhost:3000` for the frontend and `http://localhost:5000` for the backend API.
 
+.env
+
+MONGO_URI=mongodb+srv://aarfeenshahzed33_db_user:ceYB5vW9XHpZdBB0@cluster0.owhr2cx.mongodb.net/
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+PORT=5000
+NODE_ENV=development
+
 ## License
 
 MIT
