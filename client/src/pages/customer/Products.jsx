@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { getProducts } from '../../redux/slices/productSlice';
-import { addToCart } from '../../redux/slices/cartSlice';
+import { useProducts } from '../../hooks/useProducts';
+import { useAddToCart } from '../../hooks/useCart';
 import {
   Container,
   Grid,
@@ -30,9 +30,7 @@ import { ShoppingCart, Search } from '@mui/icons-material';
 
 const Products = () => {
   const theme = useTheme();
-  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { products, loading, pagination } = useSelector(state => state.products);
   const { user } = useSelector(state => state.auth);
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState([]);
@@ -40,9 +38,10 @@ const Products = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
-  useEffect(() => {
-    dispatch(getProducts({ page: currentPage, limit: itemsPerPage }));
-  }, [dispatch, currentPage]);
+  const { data: productsData, isLoading: loading } = useProducts(currentPage, itemsPerPage);
+  const products = productsData?.data || [];
+  const pagination = productsData?.pagination || { page: 1, pages: 1, total: 0 };
+  const addToCartMutation = useAddToCart();
 
   useEffect(() => {
     let filtered = products;
@@ -73,7 +72,7 @@ const Products = () => {
       return;
     }
 
-    dispatch(addToCart({ productId: product._id, quantity: 1 }));
+    // Show toast immediately for better UX
     toast.success(`${product.name} added to cart!`, {
       position: "top-right",
       autoClose: 1500,
@@ -83,6 +82,16 @@ const Products = () => {
       draggable: true,
       progress: undefined,
     });
+
+    addToCartMutation.mutate({ productId: product._id, quantity: 1 }, {
+      onError: (error) => {
+        toast.error(error.response?.data?.message || 'Failed to add to cart', {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      }
+    });
+    
     // Redirect to cart after a short delay
     setTimeout(() => {
       navigate('/cart');

@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { register } from '../../redux/slices/authSlice';
+import { useDispatch } from 'react-redux';
+import { useRegister } from '../../hooks/useAuth';
+import { setUser } from '../../redux/slices/authSlice';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -25,10 +26,11 @@ const Register = () => {
     confirmPassword: ''
   });
   const [error, setError] = useState('');
-  
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading } = useSelector(state => state.auth);
+  const registerMutation = useRegister();
+  const loading = registerMutation.isPending;
 
   const handleChange = (e) => {
     setFormData({
@@ -50,22 +52,20 @@ const Register = () => {
       setError('Password must be at least 6 characters');
       return;
     }
-    
-    try {
-      const result = await dispatch(register({
-        name: formData.name,
-        email: formData.email,
-        password: formData.password
-      }));
-      
-      if (result.error) {
-        setError(result.error.message || 'Registration failed');
-      } else {
+
+    registerMutation.mutate({
+      name: formData.name,
+      email: formData.email,
+      password: formData.password
+    }, {
+      onSuccess: (user) => {
+        dispatch(setUser(user));
         navigate('/');
+      },
+      onError: (error) => {
+        setError(error.response?.data?.message || 'Registration failed');
       }
-    } catch (err) {
-      setError('An unexpected error occurred');
-    }
+    });
   };
 
   return (

@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Container,
@@ -38,18 +37,19 @@ import {
   Store,
   AttachFile
 } from '@mui/icons-material';
-import { createProduct, updateProduct } from '../../redux/slices/productSlice';
-import { getProducts } from '../../redux/slices/productSlice';
+import { useCreateProduct, useUpdateProduct, useProducts } from '../../hooks/useProducts';
 import AdminSidebar from '../../components/layout/AdminSidebar';
 import AdminAppBar from '../../components/layout/AdminAppBar';
 
 const CreateProduct = () => {
   const theme = useTheme();
-  const dispatch = useDispatch();
   const navigate = useNavigate();
   const { id } = useParams();
-  const { products } = useSelector(state => state.products);
+  const { data: productsData } = useProducts(1, 1000);
+  const products = productsData?.data || [];
   const fileInputRef = useRef(null);
+  const createProductMutation = useCreateProduct();
+  const updateProductMutation = useUpdateProduct();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -63,7 +63,7 @@ const CreateProduct = () => {
 
   const [errors, setErrors] = useState({});
   const [isEditing, setIsEditing] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const submitting = createProductMutation.isPending || updateProductMutation.isPending;
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const drawerWidth = 280;
@@ -71,10 +71,6 @@ const CreateProduct = () => {
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
-
-  useEffect(() => {
-    dispatch(getProducts());
-  }, [dispatch]);
 
   useEffect(() => {
     if (id && products.length > 0) {
@@ -208,8 +204,6 @@ const CreateProduct = () => {
       return;
     }
 
-    setSubmitting(true);
-
     try {
       let imageUrl = formData.imagePreview;
 
@@ -231,22 +225,27 @@ const CreateProduct = () => {
         image: imageUrl
       };
 
-      let result;
       if (isEditing) {
-        result = await dispatch(updateProduct({ id, productData }));
+        updateProductMutation.mutate({ id, productData }, {
+          onSuccess: () => {
+            navigate('/admin/products');
+          },
+          onError: (error) => {
+            setErrors({ submit: error.response?.data?.message || 'Failed to update product' });
+          }
+        });
       } else {
-        result = await dispatch(createProduct(productData));
-      }
-
-      if (createProduct.rejected.match(result) || updateProduct.rejected.match(result)) {
-        setErrors({ submit: result.payload || 'Failed to save product' });
-      } else {
-        navigate('/admin/products');
+        createProductMutation.mutate(productData, {
+          onSuccess: () => {
+            navigate('/admin/products');
+          },
+          onError: (error) => {
+            setErrors({ submit: error.response?.data?.message || 'Failed to create product' });
+          }
+        });
       }
     } catch (error) {
       setErrors({ submit: error.message || 'An unexpected error occurred' });
-    } finally {
-      setSubmitting(false);
     }
   };
 

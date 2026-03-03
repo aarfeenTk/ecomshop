@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { getProducts } from '../../redux/slices/productSlice';
-import { addToCart } from '../../redux/slices/cartSlice';
+import { useSelector } from 'react-redux';
+import { useProduct } from '../../hooks/useProducts';
+import { useAddToCart } from '../../hooks/useCart';
 import { toast } from 'react-toastify';
 import {
   Container,
@@ -18,10 +18,10 @@ import {
   useTheme,
   CircularProgress
 } from '@mui/material';
-import { 
-  ShoppingCart, 
-  Add, 
-  Remove, 
+import {
+  ShoppingCart,
+  Add,
+  Remove,
   ArrowBack,
   LocalShipping,
   Security,
@@ -32,19 +32,13 @@ const ProductDetail = () => {
   const theme = useTheme();
   const { id } = useParams();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const { products, loading } = useSelector(state => state.products);
   const { user } = useSelector(state => state.auth);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
 
-  const product = products.find(p => p._id === id);
-
-  useEffect(() => {
-    if (products.length === 0) {
-      dispatch(getProducts());
-    }
-  }, [dispatch, products.length]);
+  const { data: productData, isLoading: loading } = useProduct(id);
+  const product = productData || null;
+  const addToCartMutation = useAddToCart();
 
   const handleAddToCart = () => {
     if (product && product.stock > 0) {
@@ -54,8 +48,21 @@ const ProductDetail = () => {
         return;
       }
 
-      dispatch(addToCart({ productId: product._id, quantity }));
-      toast.success(`${product.name} added to cart!`, { position: "top-right", autoClose: 1500 });
+      // Show toast immediately for better UX
+      toast.success(`${product.name} added to cart!`, {
+        position: "top-right",
+        autoClose: 1500,
+      });
+
+      addToCartMutation.mutate({ productId: product._id, quantity }, {
+        onError: (error) => {
+          toast.error(error.response?.data?.message || 'Failed to add to cart', {
+            position: "top-right",
+            autoClose: 3000,
+          });
+        }
+      });
+      
       setTimeout(() => { navigate('/cart'); }, 1000);
     }
   };

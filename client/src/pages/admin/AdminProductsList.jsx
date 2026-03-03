@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getProducts, deleteProduct } from '../../redux/slices/productSlice';
+import { useProducts, useDeleteProduct } from '../../hooks/useProducts';
 
 import {
   Typography,
@@ -53,8 +52,9 @@ import AdminAppBar from '../../components/layout/AdminAppBar';
 const AdminProductsList = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const { products, loading } = useSelector(state => state.products);
+  const { data: productsData, isLoading: loading } = useProducts(1, 1000);
+  const products = productsData?.data || [];
+  const deleteProductMutation = useDeleteProduct();
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -64,13 +64,9 @@ const AdminProductsList = () => {
   const [filterCategory, setFilterCategory] = useState('all');
   const [sortBy, setSortBy] = useState('name');
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState({});
   const drawerWidth = 280;
 
-  useEffect(() => {
-    // Fetch all products for admin (client-side pagination is used)
-    dispatch(getProducts({ page: 1, limit: 1000 }));
-  }, [dispatch]);
+  const deleteLoading = { [selectedProduct?._id]: deleteProductMutation.isPending };
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -97,40 +93,36 @@ const AdminProductsList = () => {
 
   const handleDeleteConfirm = () => {
     const productId = selectedProduct._id;
-    setDeleteLoading(prev => ({ ...prev, [productId]: true }));
-    dispatch(deleteProduct(productId))
-      .unwrap()
-      .then(() => {
+    deleteProductMutation.mutate(productId, {
+      onSuccess: () => {
         setDeleteDialogOpen(false);
         setSelectedProduct(null);
-        setSnackbar({ 
-          open: true, 
-          message: 'Product marked as unavailable (soft deleted)', 
-          severity: 'success' 
+        setSnackbar({
+          open: true,
+          message: 'Product marked as unavailable (soft deleted)',
+          severity: 'success'
         });
-      })
-      .catch((error) => {
+      },
+      onError: (error) => {
         setDeleteDialogOpen(false);
         setSelectedProduct(null);
-        
+
         // Check if error is about active orders
-        if (error.activeOrdersCount > 0) {
+        if (error.response?.data?.activeOrdersCount > 0) {
           setSnackbar({
             open: true,
-            message: `Cannot delete: Product has ${error.activeOrdersCount} active order(s). Consider marking as unavailable instead.`,
+            message: `Cannot delete: Product has ${error.response.data.activeOrdersCount} active order(s). Consider marking as unavailable instead.`,
             severity: 'warning'
           });
         } else {
-          setSnackbar({ 
-            open: true, 
-            message: error.message || 'Failed to delete product', 
-            severity: 'error' 
+          setSnackbar({
+            open: true,
+            message: error.response?.data?.message || 'Failed to delete product',
+            severity: 'error'
           });
         }
-      })
-      .finally(() => {
-        setDeleteLoading(prev => ({ ...prev, [productId]: false }));
-      });
+      }
+    });
   };
 
   const handleDeleteCancel = () => {

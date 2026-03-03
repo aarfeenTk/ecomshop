@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -24,16 +24,18 @@ import {
   LocalShipping,
   Security
 } from '@mui/icons-material';
-import { createOrder } from '../../redux/slices/orderSlice';
-import { getCart, clearCart } from '../../redux/slices/cartSlice';
-import { getProducts } from '../../redux/slices/productSlice';
+import { useCreateOrder } from '../../hooks/useOrders';
+import { useCart } from '../../hooks/useCart';
+import { useProducts } from '../../hooks/useProducts';
 
 const Checkout = () => {
   const theme = useTheme();
-  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { items } = useSelector(state => state.cart);
-  const { loading } = useSelector(state => state.orders);
+  const { data: cartData } = useCart();
+  const items = cartData || [];
+  const createOrderMutation = useCreateOrder();
+  const loading = createOrderMutation.isPending;
+  const { refetch: refetchProducts } = useProducts();
 
   // Filter out unavailable products (soft-deleted or inactive)
   const availableItems = items.filter(
@@ -50,9 +52,7 @@ const Checkout = () => {
   });
   const [errors, setErrors] = useState({});
 
-  useEffect(() => {
-    dispatch(getCart());
-  }, [dispatch]);
+  // Cart data is automatically fetched by useCart hook when user is authenticated
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -110,18 +110,16 @@ const Checkout = () => {
       return;
     }
 
-    try {
-      const result = await dispatch(createOrder(formData));
-      if (result.error) {
-        setErrors({ submit: result.error.message || 'Failed to create order' });
-      } else {
-        dispatch(clearCart());
-        dispatch(getProducts());
+    createOrderMutation.mutate(formData, {
+      onSuccess: () => {
+        // Clear cart by invalidating the query
+        refetchProducts();
         navigate('/orders');
+      },
+      onError: (error) => {
+        setErrors({ submit: error.response?.data?.message || 'Failed to create order' });
       }
-    } catch (error) {
-      setErrors({ submit: 'An unexpected error occurred' });
-    }
+    });
   };
 
   const calculateSubtotal = () => {

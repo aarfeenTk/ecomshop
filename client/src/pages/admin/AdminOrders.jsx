@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { getOrders, updateOrderStatus, clearError } from '../../redux/slices/orderSlice';
+import { useState, useEffect } from 'react';
+import { useOrders, useUpdateOrderStatus } from '../../hooks/useOrders';
 import { ORDER_STATUSES, PAYMENT_METHODS, FILTER_OPTIONS } from '../../utils/constants';
 import AdminSidebar from '../../components/layout/AdminSidebar';
 import AdminAppBar from '../../components/layout/AdminAppBar';
@@ -42,8 +41,10 @@ import {
 
 const AdminOrders = () => {
   const theme = useTheme();
-  const dispatch = useDispatch();
-  const { orders, loading, error, updatingOrderId } = useSelector(state => state.orders);
+  const { data: ordersData, isLoading: loading, error, refetch } = useOrders();
+  const orders = ordersData || [];
+  const updateOrderStatusMutation = useUpdateOrderStatus();
+  const updatingOrderId = updateOrderStatusMutation.isPending ? updateOrderStatusMutation.variables?.id : null;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -56,37 +57,32 @@ const AdminOrders = () => {
   const drawerWidth = 280;
 
   useEffect(() => {
-    dispatch(getOrders());
-  }, [dispatch]);
-
-  useEffect(() => {
     if (error) {
-      setSnackbar({ open: true, message: error, severity: 'error' });
-      dispatch(clearError());
+      setSnackbar({ open: true, message: error.message || 'Failed to fetch orders', severity: 'error' });
     }
-  }, [error, dispatch]);
+  }, [error]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
   const handleStatusUpdate = (orderId, newStatus) => {
-    dispatch(updateOrderStatus({ id: orderId, status: newStatus }))
-      .unwrap()
-      .then(() => {
-        setSnackbar({ 
-          open: true, 
-          message: `Order status updated to ${newStatus}`, 
-          severity: 'success' 
+    updateOrderStatusMutation.mutate({ id: orderId, status: newStatus }, {
+      onSuccess: () => {
+        setSnackbar({
+          open: true,
+          message: `Order status updated to ${newStatus}`,
+          severity: 'success'
         });
-      })
-      .catch((error) => {
-        setSnackbar({ 
-          open: true, 
-          message: error || 'Failed to update order status', 
-          severity: 'error' 
+      },
+      onError: (error) => {
+        setSnackbar({
+          open: true,
+          message: error.response?.data?.message || 'Failed to update order status',
+          severity: 'error'
         });
-      });
+      }
+    });
   };
 
   const filteredOrders = orders.filter(order => {

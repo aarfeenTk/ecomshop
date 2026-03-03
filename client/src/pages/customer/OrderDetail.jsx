@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
-import { getMyOrders } from '../../redux/slices/orderSlice';
+import { useMyOrders } from '../../hooks/useOrders';
 import {
   Container,
   Typography,
@@ -37,13 +36,9 @@ const OrderDetail = () => {
   const theme = useTheme();
   const { id } = useParams();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const { orders, loading } = useSelector(state => state.orders);
+  const { data: ordersData, isLoading: loading } = useMyOrders(1, 100);
+  const orders = ordersData?.data || [];
   const [order, setOrder] = useState(null);
-
-  useEffect(() => {
-    dispatch(getMyOrders());
-  }, [dispatch]);
 
   useEffect(() => {
     if (orders.length > 0) {

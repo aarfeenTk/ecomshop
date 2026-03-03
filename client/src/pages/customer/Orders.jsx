@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { getMyOrders } from '../../redux/slices/orderSlice';
+import { useMyOrders } from '../../hooks/useOrders';
 import {
   Container,
   Typography,
@@ -28,14 +27,11 @@ import {
 
 const Orders = () => {
   const theme = useTheme();
-  const dispatch = useDispatch();
-  const { orders, loading, pagination } = useSelector(state => state.orders);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-
-  useEffect(() => {
-    dispatch(getMyOrders({ page: currentPage, limit: itemsPerPage }));
-  }, [dispatch, currentPage]);
+  const { data: ordersData, isLoading: loading } = useMyOrders(currentPage, itemsPerPage);
+  const orders = ordersData?.data || [];
+  const pagination = ordersData?.pagination || { page: 1, pages: 1, total: 0 };
 
   const getStatusColor = (status) => {
     switch (status) {

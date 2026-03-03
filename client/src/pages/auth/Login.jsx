@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { login } from '../../redux/slices/authSlice';
+import { useDispatch } from 'react-redux';
+import { useLogin } from '../../hooks/useAuth';
+import { setUser } from '../../redux/slices/authSlice';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -21,25 +22,25 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading } = useSelector(state => state.auth);
+  const loginMutation = useLogin();
+  const loading = loginMutation.isPending;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
-    try {
-      const result = await dispatch(login({ email, password }));
-      if (result.error) {
-        setError(result.error.message || 'Login failed');
-      } else {
+
+    loginMutation.mutate({ email, password }, {
+      onSuccess: (user) => {
+        dispatch(setUser(user));
         navigate('/');
+      },
+      onError: (error) => {
+        setError(error.response?.data?.message || 'Login failed');
       }
-    } catch (err) {
-      setError('An unexpected error occurred');
-    }
+    });
   };
 
   return (

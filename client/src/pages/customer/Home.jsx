@@ -1,20 +1,15 @@
 import { Typography, Grid, Card, CardContent, CardMedia, Button, Box, Container, CircularProgress } from '@mui/material';
 import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { getProducts } from '../../redux/slices/productSlice';
+import { useProducts } from '../../hooks/useProducts';
 import { Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
 const Home = () => {
-  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const products = useSelector(state => state.products?.products || []);
-  const loading = useSelector(state => state.products?.loading || false);
+  const { data, isLoading } = useProducts();
   const { user } = useSelector(state => state.auth);
-
-  useEffect(() => {
-    dispatch(getProducts());
-  }, [dispatch]);
+  const products = data?.data || [];
 
   useEffect(() => {
     const isAdminUser = user?.isAdmin === true || user?.role === 'admin';
@@ -60,7 +55,7 @@ const Home = () => {
         Featured Products
       </Typography>
 
-      {loading ? (
+      {isLoading ? (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, py: 8 }}>
           <CircularProgress size={60} />
           <Typography variant="h6" color="text.secondary" fontWeight={600}>

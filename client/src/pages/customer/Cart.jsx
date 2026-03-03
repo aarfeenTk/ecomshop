@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -25,35 +25,32 @@ import {
   ShoppingCart,
   ArrowBack
 } from '@mui/icons-material';
-import {
-  updateCartItem,
-  removeFromCart,
-  getCart
-} from '../../redux/slices/cartSlice';
+import { useCart, useUpdateCartItem, useRemoveFromCart } from '../../hooks/useCart';
 
 const Cart = () => {
   const theme = useTheme();
-  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { items, loading } = useSelector(state => state.cart);
   const { user } = useSelector(state => state.auth);
+  const { data: cartData, isLoading: loading } = useCart();
+  const items = cartData || [];
+  const updateCartItemMutation = useUpdateCartItem();
+  const removeFromCartMutation = useRemoveFromCart();
 
   useEffect(() => {
     if (!user) {
       navigate('/login');
       return;
     }
-    dispatch(getCart());
-  }, [dispatch, user, navigate]);
+  }, [user, navigate]);
 
   const handleQuantityChange = (productId, newQuantity) => {
     if (newQuantity > 0) {
-      dispatch(updateCartItem({ productId, quantity: newQuantity }));
+      updateCartItemMutation.mutate({ productId, quantity: newQuantity });
     }
   };
 
   const handleRemoveItem = (productId) => {
-    dispatch(removeFromCart(productId));
+    removeFromCartMutation.mutate(productId);
   };
 
   const handleQuantityInputChange = (productId, value) => {
@@ -63,7 +60,7 @@ const Cart = () => {
 
     const quantity = parseInt(value, 10);
     if (!isNaN(quantity) && quantity >= 1) {
-      dispatch(updateCartItem({ productId, quantity }));
+      updateCartItemMutation.mutate({ productId, quantity });
     }
   };
 
