@@ -74,108 +74,13 @@ A production-style MERN Stack E-Commerce Application with clean architecture, pr
    npm run dev
    ```
 
-2. In another terminal, start the frontend:
+2. Start the frontend:
 
    ```bash
-   npm run client
-   ```
-
-3. Or run both simultaneously:
-
-   ```bash
-   npm run dev & npm run client
+   npm run dev
    ```
 
 The application will be available at `http://localhost:3000` for the frontend and `http://localhost:5000` for the backend API.
-
-## API Endpoints
-
-### Auth
-
-- POST /api/auth/register
-- POST /api/auth/login
-
-### Products
-
-- GET /api/products
-- GET /api/products/:id
-- POST /api/products (Admin)
-- PUT /api/products/:id (Admin)
-- DELETE /api/products/:id (Admin)
-
-### Cart
-
-- GET /api/cart
-- POST /api/cart
-- PUT /api/cart/:productId
-- DELETE /api/cart/:productId
-
-### Orders
-
-- POST /api/orders
-- GET /api/orders/my
-- GET /api/orders (Admin)
-- PUT /api/orders/:id/status (Admin)
-
-## Project Structure
-
-```
-mern-ecommerce/
-├── server/
-│   ├── config/
-│   │   └── database.js
-│   ├── controllers/
-│   │   ├── auth.js
-│   │   ├── product.js
-│   │   ├── cart.js
-│   │   └── order.js
-│   ├── middleware/
-│   │   ├── auth.js
-│   │   ├── validation.js
-│   │   └── error.js
-│   ├── models/
-│   │   ├── User.js
-│   │   ├── Product.js
-│   │   └── Order.js
-│   ├── routes/
-│   │   ├── auth.js
-│   │   ├── product.js
-│   │   ├── cart.js
-│   │   └── order.js
-│   ├── seed/
-│   │   └── seed.js
-│   └── server.js
-├── client/
-│   ├── src/
-│   │   ├── components/
-│   │   │   └── Header.jsx
-│   │   ├── pages/
-│   │   │   ├── Home.jsx
-│   │   │   ├── Login.jsx
-│   │   │   ├── Register.jsx
-│   │   │   ├── Products.jsx
-│   │   │   ├── ProductDetail.jsx
-│   │   │   ├── Cart.jsx
-│   │   │   ├── Checkout.jsx
-│   │   │   ├── Orders.jsx
-│   │   │   └── AdminDashboard.jsx
-│   │   ├── redux/
-│   │   │   ├── store.js
-│   │   │   └── slices/
-│   │   │       ├── authSlice.js
-│   │   │       ├── productSlice.js
-│   │   │       ├── cartSlice.js
-│   │   │       └── orderSlice.js
-│   │   ├── utils/
-│   │   ├── App.jsx
-│   │   ├── main.jsx
-│   │   └── index.css
-│   ├── package.json
-│   └── vite.config.js
-├── .env
-├── package.json
-└── README.md
-```
 
 ## License
 
