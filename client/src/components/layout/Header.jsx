@@ -3,7 +3,7 @@ import { ShoppingCart, Menu as MenuIcon, AccountCircle } from '@mui/icons-materi
 import { useSelector, useDispatch } from 'react-redux';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { logout } from '../../redux/slices/authSlice';
-import { clearCart } from '../../redux/slices/cartSlice';
+import { useCart } from '../../hooks/useCart';
 import { useState } from 'react';
 
 const Header = () => {
@@ -15,12 +15,11 @@ const Header = () => {
   const isMenuOpen = Boolean(anchorEl);
   const isUserMenuOpen = Boolean(userMenuAnchorEl);
   const { user } = useSelector(state => state.auth);
-  const { items } = useSelector(state => state.cart);
+  const { data: items = [] } = useCart();
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    dispatch(clearCart());
     dispatch(logout());
     navigate('/login');
   };

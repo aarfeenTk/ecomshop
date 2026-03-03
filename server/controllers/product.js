@@ -19,13 +19,29 @@ exports.getProducts = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+    // Check for active orders for each product
+    const productsWithOrderInfo = await Promise.all(
+      products.map(async (product) => {
+        const activeOrdersCount = await Order.countDocuments({
+          'orderItems.product': product._id,
+          status: { $in: ['Pending', 'Approved', 'Shipped'] }
+        });
+
+        return {
+          ...product.toObject(),
+          hasActiveOrders: activeOrdersCount > 0,
+          activeOrdersCount
+        };
+      })
+    );
+
     res.status(200).json({
       success: true,
-      count: products.length,
+      count: productsWithOrderInfo.length,
       total,
       page,
       pages: Math.ceil(total / limit),
-      data: products,
+      data: productsWithOrderInfo,
     });
   } catch (error) {
     res.status(500).json({

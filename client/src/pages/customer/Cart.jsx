@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
@@ -35,6 +35,7 @@ const Cart = () => {
   const items = cartData || [];
   const updateCartItemMutation = useUpdateCartItem();
   const removeFromCartMutation = useRemoveFromCart();
+  const [deletingProductId, setDeletingProductId] = useState(null);
 
   useEffect(() => {
     if (!user) {
@@ -50,7 +51,12 @@ const Cart = () => {
   };
 
   const handleRemoveItem = (productId) => {
-    removeFromCartMutation.mutate(productId);
+    setDeletingProductId(productId);
+    removeFromCartMutation.mutate(productId, {
+      onSettled: () => {
+        setDeletingProductId(null);
+      }
+    });
   };
 
   const handleQuantityInputChange = (productId, value) => {
@@ -231,7 +237,7 @@ const Cart = () => {
                             Unavailable
                           </Typography>
                         ) : (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 ,marginTop:5  }}>
                             <IconButton
                               size="small"
                               onClick={() => handleQuantityChange(item.product._id, item.quantity - 1)}
@@ -297,7 +303,7 @@ const Cart = () => {
                           {!isProductUnavailable && (
                             <Typography
                               variant="h6"
-                              sx={{ fontWeight: 700, mb: 1 }}
+                              sx={{ fontWeight: 600, mb: 1 }}
                             >
                               ${(item.product.price * item.quantity).toFixed(2)}
                             </Typography>
@@ -306,9 +312,14 @@ const Cart = () => {
                             size="small"
                             onClick={() => handleRemoveItem(item.product?._id || item._id)}
                             color="error"
+                            disabled={deletingProductId === item.product?._id || deletingProductId === item._id}
                             sx={{ ml: 'auto' }}
                           >
-                            <Delete fontSize="small" />
+                            {deletingProductId === item.product?._id || deletingProductId === item._id ? (
+                              <CircularProgress size={16} color="inherit" />
+                            ) : (
+                              <Delete fontSize="small" />
+                            )}
                           </IconButton>
                         </Box>
                       </Grid>

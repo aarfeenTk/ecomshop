@@ -48,11 +48,11 @@ export function useAddToCart() {
               : item
           );
         } else {
-          // Add new item (optimistically assume product details)
+          // Add new item with full product details from context
           newCart = [
             ...previousCart,
             {
-              product: { _id: newItem.productId },
+              product: newItem.product || { _id: newItem.productId },
               quantity: newItem.quantity
             }
           ];

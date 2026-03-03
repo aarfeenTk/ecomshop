@@ -54,16 +54,30 @@ const ProductDetail = () => {
         autoClose: 1500,
       });
 
-      addToCartMutation.mutate({ productId: product._id, quantity }, {
+      // Pass full product details for optimistic update
+      addToCartMutation.mutate({ 
+        productId: product._id, 
+        quantity,
+        product: {
+          _id: product._id,
+          name: product.name,
+          price: product.price,
+          image: product.image,
+          active: product.active,
+          isDeleted: product.isDeleted
+        }
+      }, {
         onError: (error) => {
           toast.error(error.response?.data?.message || 'Failed to add to cart', {
             position: "top-right",
             autoClose: 3000,
           });
+        },
+        onSettled: () => {
+          // Redirect to cart after mutation settles (success or error)
+          setTimeout(() => { navigate('/cart'); }, 500);
         }
       });
-      
-      setTimeout(() => { navigate('/cart'); }, 1000);
     }
   };
 

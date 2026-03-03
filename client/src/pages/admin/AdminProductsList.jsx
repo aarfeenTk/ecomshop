@@ -107,11 +107,12 @@ const AdminProductsList = () => {
         setDeleteDialogOpen(false);
         setSelectedProduct(null);
 
-        // Check if error is about active orders
-        if (error.response?.data?.activeOrdersCount > 0) {
+        // Show appropriate message
+        const activeOrdersCount = error.response?.data?.activeOrdersCount || 0;
+        if (activeOrdersCount > 0) {
           setSnackbar({
             open: true,
-            message: `Cannot delete: Product has ${error.response.data.activeOrdersCount} active order(s). Consider marking as unavailable instead.`,
+            message: `Cannot delete: Product has ${activeOrdersCount} active order(s). Consider marking as unavailable instead.`,
             severity: 'warning'
           });
         } else {
@@ -579,33 +580,41 @@ const AdminProductsList = () => {
                               <Edit fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Delete Product" arrow>
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleDeleteClick(product)}
-                              disabled={deleteLoading[product._id]}
-                              sx={{
-                                bgcolor: 'error.50',
-                                color: 'error.main',
-                                '&:hover': {
-                                  bgcolor: 'error.main',
-                                  color: 'white',
-                                  transform: 'scale(1.05)'
-                                },
-                                '&.Mui-disabled': {
-                                  bgcolor: 'grey.100',
-                                  color: 'grey.400'
-                                },
-                                transition: 'all 0.2s ease-in-out'
-                              }}
-                            >
-                              {deleteLoading[product._id] ? (
-                                <CircularProgress size={16} thickness={4} />
-                              ) : (
-                                <Delete fontSize="small" />
-                              )}
-                            </IconButton>
+                          <Tooltip 
+                            title={product.activeOrdersCount > 0
+                              ? `Cannot delete - Product has ${product.activeOrdersCount} active order(s). Use soft delete instead.`
+                              : "Delete Product"
+                            } 
+                            arrow
+                          >
+                            <span>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleDeleteClick(product)}
+                                disabled={deleteLoading[product._id] || product.activeOrdersCount > 0}
+                                sx={{
+                                  bgcolor: product.activeOrdersCount > 0 ? 'grey.100' : 'error.50',
+                                  color: product.activeOrdersCount > 0 ? 'grey.400' : 'error.main',
+                                  '&:hover': {
+                                    bgcolor: product.activeOrdersCount > 0 ? 'grey.100' : 'error.main',
+                                    color: product.activeOrdersCount > 0 ? 'grey.400' : 'white',
+                                    transform: product.activeOrdersCount > 0 ? 'none' : 'scale(1.05)'
+                                  },
+                                  '&.Mui-disabled': {
+                                    bgcolor: 'grey.100',
+                                    color: 'grey.400'
+                                  },
+                                  transition: 'all 0.2s ease-in-out'
+                                }}
+                              >
+                                {deleteLoading[product._id] ? (
+                                  <CircularProgress size={16} thickness={4} />
+                                ) : (
+                                  <Delete fontSize="small" />
+                                )}
+                              </IconButton>
+                            </span>
                           </Tooltip>
                         </Box>
                       </TableCell>
