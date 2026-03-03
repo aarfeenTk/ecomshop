@@ -23,7 +23,8 @@ import {
   Chip,
   Skeleton,
   useTheme,
-  Pagination
+  Pagination,
+  CircularProgress
 } from '@mui/material';
 import { ShoppingCart, Search } from '@mui/icons-material';
 
@@ -32,6 +33,7 @@ const Products = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { products, loading, pagination } = useSelector(state => state.products);
+  const { user } = useSelector(state => state.auth);
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -64,6 +66,13 @@ const Products = () => {
   const handleAddToCart = (product, e) => {
     e.preventDefault(); // Prevent Link navigation
     e.stopPropagation(); // Prevent event bubbling
+
+    if (!user) {
+      // User not authenticated, redirect to login
+      navigate('/login');
+      return;
+    }
+
     dispatch(addToCart({ productId: product._id, quantity: 1 }));
     toast.success(`${product.name} added to cart!`, {
       position: "top-right",
@@ -83,23 +92,22 @@ const Products = () => {
   if (loading) {
     return (
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 0 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 1 }}>
           Discover Products
         </Typography>
-        <Grid container spacing={3}>
-          {Array.from({ length: 8 }).map((_, index) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
-              <Card elevation={1}>
-                <Skeleton variant="rectangular" height={200} />
-                <CardContent>
-                  <Skeleton variant="text" height={32} />
-                  <Skeleton variant="text" height={24} width="60%" />
-                  <Skeleton variant="rectangular" height={36} width="100%" sx={{ mt: 2 }} />
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+          Find exactly what you're looking for
+        </Typography>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, py: 8 }}>
+          <CircularProgress size={60} />
+          <Typography variant="h6" color="text.secondary" fontWeight={600}>
+            Loading Products...
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Please wait while we fetch the latest products
+          </Typography>
+        </Box>
       </Container>
     );
   }

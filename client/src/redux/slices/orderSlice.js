@@ -114,8 +114,17 @@ const orderSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      .addCase(getOrders.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(getOrders.fulfilled, (state, action) => {
+        state.loading = false;
         state.orders = action.payload;
+      })
+      .addCase(getOrders.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
       .addCase(updateOrderStatus.pending, (state, action) => {
         state.updatingOrderId = action.meta.arg.id;

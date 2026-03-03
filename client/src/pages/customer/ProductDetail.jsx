@@ -3,12 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { getProducts } from '../../redux/slices/productSlice';
 import { addToCart } from '../../redux/slices/cartSlice';
+import { toast } from 'react-toastify';
 import {
   Container,
   Grid,
-  Card,
   CardMedia,
-  CardContent,
   Typography,
   Button,
   Box,
@@ -35,6 +34,7 @@ const ProductDetail = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { products, loading } = useSelector(state => state.products);
+  const { user } = useSelector(state => state.auth);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
 
@@ -48,7 +48,15 @@ const ProductDetail = () => {
 
   const handleAddToCart = () => {
     if (product && product.stock > 0) {
+      if (!user) {
+        // User not authenticated, redirect to login
+        navigate('/login');
+        return;
+      }
+
       dispatch(addToCart({ productId: product._id, quantity }));
+      toast.success(`${product.name} added to cart!`, { position: "top-right", autoClose: 1500 });
+      setTimeout(() => { navigate('/cart'); }, 1000);
     }
   };
 

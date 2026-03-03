@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
 import { getOrders, updateOrderStatus, clearError } from '../../redux/slices/orderSlice';
 import { ORDER_STATUSES, PAYMENT_METHODS, FILTER_OPTIONS } from '../../utils/constants';
 import AdminSidebar from '../../components/layout/AdminSidebar';
@@ -21,7 +20,6 @@ import {
   TableRow,
   TablePagination,
   Chip,
-  useMediaQuery,
   FormControl,
   InputLabel,
   Select,
@@ -46,7 +44,6 @@ const AdminOrders = () => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const { orders, loading, error, updatingOrderId } = useSelector(state => state.orders);
-  
   const [mobileOpen, setMobileOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -344,16 +341,45 @@ const AdminOrders = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} sx={{ textAlign: 'center', py: 8 }}>
-                    <CircularProgress />
+                  <TableCell
+                    colSpan={7}
+                    align="center"
+                    sx={{ py: 8 }}
+                  >
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                      <CircularProgress size={48} />
+                      <Typography variant="h6" color="text.secondary" fontWeight={600}>
+                        Loading Orders...
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Please wait while we fetch your orders
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ) : paginatedOrders.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} sx={{ textAlign: 'center', py: 8 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      No orders found
-                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                      <Avatar
+                        sx={{
+                          width: 64,
+                          height: 64,
+                          bgcolor: 'grey.200',
+                          mb: 1
+                        }}
+                      >
+                        <Assignment sx={{ fontSize: 32, color: 'text.secondary' }} />
+                      </Avatar>
+                      <Typography variant="h6" color="text.secondary" fontWeight={600}>
+                        No Orders Found
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {searchTerm || filterStatus !== 'all' || filterPaymentMethod !== 'all' || filterOrderId
+                          ? 'Try adjusting your search or filters'
+                          : 'No orders have been placed yet'}
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ) : (

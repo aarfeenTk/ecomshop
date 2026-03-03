@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { getProducts, deleteProduct } from '../../redux/slices/productSlice';
-import { logout } from '../../redux/slices/authSlice';
 
 import {
   Typography,
@@ -383,7 +382,25 @@ const AdminProductsList = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {paginatedProducts.length === 0 ? (
+                  {loading ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={7}
+                        align="center"
+                        sx={{ py: 8 }}
+                      >
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                          <CircularProgress size={48} />
+                          <Typography variant="h6" color="text.secondary" fontWeight={600}>
+                            Loading Products...
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Please wait while we fetch your products
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ) : paginatedProducts.length === 0 ? (
                     <TableRow>
                       <TableCell
                         colSpan={7}
@@ -443,20 +460,20 @@ const AdminProductsList = () => {
                               component="img"
                               image={product.image}
                               alt={product.name}
-                              sx={{ 
-                                width: 56, 
-                                height: 56, 
-                                borderRadius: 2, 
+                              sx={{
+                                width: 56,
+                                height: 56,
+                                borderRadius: 2,
                                 objectFit: 'cover',
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                                 border: '1px solid rgba(0,0,0,0.05)'
                               }}
                             />
                           ) : (
-                            <Avatar 
-                              sx={{ 
-                                width: 56, 
-                                height: 56, 
+                            <Avatar
+                              sx={{
+                                width: 56,
+                                height: 56,
                                 bgcolor: 'primary.light',
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                               }}
@@ -465,9 +482,9 @@ const AdminProductsList = () => {
                             </Avatar>
                           )}
                           <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography 
-                              variant="body2" 
-                              sx={{ 
+                            <Typography
+                              variant="body2"
+                              sx={{
                                 fontWeight: 600,
                                 color: 'text.primary',
                                 fontSize: '0.9rem',
@@ -476,10 +493,10 @@ const AdminProductsList = () => {
                             >
                               {product.name}
                             </Typography>
-                            <Typography 
-                              variant="caption" 
+                            <Typography
+                              variant="caption"
                               color="text.secondary"
-                              sx={{ 
+                              sx={{
                                 display: 'block',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
@@ -497,7 +514,7 @@ const AdminProductsList = () => {
                           label={product.category || 'Uncategorized'}
                           size="small"
                           variant="outlined"
-                          sx={{ 
+                          sx={{
                             fontSize: '0.75rem',
                             fontWeight: 500,
                             borderColor: 'primary.main',
@@ -515,9 +532,9 @@ const AdminProductsList = () => {
                       </TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                          <Typography 
-                            variant="body2" 
-                            sx={{ 
+                          <Typography
+                            variant="body2"
+                            sx={{
                               fontWeight: 500,
                               color: product.stock > 10 ? 'text.primary' : 'warning.main'
                             }}
@@ -531,7 +548,7 @@ const AdminProductsList = () => {
                           label={product.stock > 0 ? 'In Stock' : 'Out of Stock'}
                           size="small"
                           color={product.stock > 0 ? 'success' : 'error'}
-                          sx={{ 
+                          sx={{
                             fontSize: '0.75rem',
                             fontWeight: 600,
                             ...(product.stock === 0 && {
@@ -542,8 +559,8 @@ const AdminProductsList = () => {
                         />
                       </TableCell>
                       <TableCell>
-                        <Typography 
-                          variant="body2" 
+                        <Typography
+                          variant="body2"
                           color="text.secondary"
                           sx={{ fontSize: '0.8rem' }}
                         >
