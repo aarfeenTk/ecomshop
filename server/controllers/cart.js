@@ -6,7 +6,14 @@ const Product = require('../models/Product');
 // @access  Private
 exports.getCart = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).populate('cart.product');
+    const user = await User.findById(req.user.id);
+    
+    // Populate cart products including soft-deleted ones (for showing unavailable items)
+    await user.populate({
+      path: 'cart.product',
+      model: 'Product',
+      options: { includeDeleted: true }
+    });
 
     res.status(200).json({
       success: true,
@@ -68,8 +75,12 @@ exports.addToCart = async (req, res) => {
 
     await user.save();
 
-    // Populate cart for response
-    await user.populate('cart.product');
+    // Populate cart for response (include deleted products)
+    await user.populate({
+      path: 'cart.product',
+      model: 'Product',
+      options: { includeDeleted: true }
+    });
 
     res.status(200).json({
       success: true,
@@ -126,8 +137,12 @@ exports.updateCartItem = async (req, res) => {
 
     await user.save();
 
-    // Populate cart for response
-    await user.populate('cart.product');
+    // Populate cart for response (include deleted products)
+    await user.populate({
+      path: 'cart.product',
+      model: 'Product',
+      options: { includeDeleted: true }
+    });
 
     res.status(200).json({
       success: true,
@@ -158,8 +173,12 @@ exports.removeFromCart = async (req, res) => {
 
     await user.save();
 
-    // Populate cart for response
-    await user.populate('cart.product');
+    // Populate cart for response (include deleted products)
+    await user.populate({
+      path: 'cart.product',
+      model: 'Product',
+      options: { includeDeleted: true }
+    });
 
     res.status(200).json({
       success: true,

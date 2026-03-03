@@ -16,8 +16,12 @@ exports.createOrder = async (req, res) => {
       transactionReference,
     } = req.body;
 
-    // Get user with cart
-    const user = await User.findById(req.user.id).populate('cart.product');
+    // Get user with cart (including soft-deleted products to handle them)
+    const user = await User.findById(req.user.id).populate({
+      path: 'cart.product',
+      model: 'Product',
+      options: { includeDeleted: true }
+    });
 
     if (!user.cart || user.cart.length === 0) {
       return res.status(400).json({
@@ -26,11 +30,23 @@ exports.createOrder = async (req, res) => {
       });
     }
 
+    // Filter out unavailable products (soft-deleted or inactive)
+    const availableCartItems = user.cart.filter(
+      item => item.product && !item.product.isDeleted && item.product.active
+    );
+
+    if (availableCartItems.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No available products in cart',
+      });
+    }
+
     // Check stock and calculate total
     let totalPrice = 0;
     const orderItems = [];
 
-    for (const item of user.cart) {
+    for (const item of availableCartItems) {
       const product = item.product;
 
       if (product.stock < item.quantity) {
@@ -68,8 +84,10 @@ exports.createOrder = async (req, res) => {
       transactionReference: paymentMethod === 'Bank Transfer' ? transactionReference : undefined,
     });
 
-    // Clear cart
-    user.cart = [];
+    // Remove only the available items from cart (keep unavailable items so user can remove them)
+    user.cart = user.cart.filter(
+      item => item.product && (item.product.isDeleted || !item.product.active)
+    );
     await user.save();
 
     res.status(201).json({
@@ -90,13 +108,25 @@ exports.createOrder = async (req, res) => {
 // @access  Private
 exports.getMyOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ user: req.user.id }).populate(
-      'orderItems.product',
-      'name image'
-    );
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const skip = (page - 1) * limit;
+
+    // Get total count for pagination
+    const total = await Order.countDocuments({ user: req.user.id });
+
+    const orders = await Order.find({ user: req.user.id })
+      .populate('orderItems.product', 'name image')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     res.status(200).json({
       success: true,
+      count: orders.length,
+      total,
+      page,
+      pages: Math.ceil(total / limit),
       data: orders,
     });
   } catch (error) {

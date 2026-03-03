@@ -18,13 +18,13 @@ export const createOrder = createAsyncThunk(
 
 export const getMyOrders = createAsyncThunk(
   'orders/getMyOrders',
-  async (_, { rejectWithValue }) => {
+  async ({ page = 1, limit = 10 } = {}, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('/api/orders/my', {
+      const response = await axios.get(`/api/orders/my?page=${page}&limit=${limit}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      return response.data.data;
+      return response.data;
     } catch (error) {
       return rejectWithValue(error.response.data.message);
     }
@@ -69,6 +69,12 @@ const orderSlice = createSlice({
     loading: false,
     error: null,
     updatingOrderId: null,
+    pagination: {
+      page: 1,
+      pages: 1,
+      total: 0,
+      limit: 10,
+    },
   },
   reducers: {
     clearError: (state) => {
@@ -96,7 +102,13 @@ const orderSlice = createSlice({
       })
       .addCase(getMyOrders.fulfilled, (state, action) => {
         state.loading = false;
-        state.orders = action.payload;
+        state.orders = action.payload.data;
+        state.pagination = {
+          page: action.payload.page,
+          pages: action.payload.pages,
+          total: action.payload.total,
+          limit: action.payload.limit || 10,
+        };
       })
       .addCase(getMyOrders.rejected, (state, action) => {
         state.loading = false;

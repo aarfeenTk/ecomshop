@@ -48,7 +48,7 @@ const CreateProduct = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { id } = useParams();
-  const { products, loading } = useSelector(state => state.products);
+  const { products } = useSelector(state => state.products);
   const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
@@ -63,6 +63,7 @@ const CreateProduct = () => {
 
   const [errors, setErrors] = useState({});
   const [isEditing, setIsEditing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const drawerWidth = 280;
@@ -202,14 +203,16 @@ const CreateProduct = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
+    setSubmitting(true);
+
     try {
       let imageUrl = formData.imagePreview;
-      
+
       if (formData.image && formData.image instanceof File) {
         imageUrl = await new Promise((resolve, reject) => {
           const reader = new FileReader();
@@ -235,13 +238,15 @@ const CreateProduct = () => {
         result = await dispatch(createProduct(productData));
       }
 
-      if (result.error) {
-        setErrors({ submit: result.error.message || 'Failed to save product' });
+      if (createProduct.rejected.match(result) || updateProduct.rejected.match(result)) {
+        setErrors({ submit: result.payload || 'Failed to save product' });
       } else {
         navigate('/admin/products');
       }
     } catch (error) {
-      setErrors({ submit: 'An unexpected error occurred' });
+      setErrors({ submit: error.message || 'An unexpected error occurred' });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -510,6 +515,7 @@ const CreateProduct = () => {
                   <Button
                     variant="outlined"
                     onClick={() => navigate('/admin/products')}
+                    disabled={submitting}
                     sx={{ borderRadius: 2 }}
                   >
                     Cancel
@@ -518,7 +524,7 @@ const CreateProduct = () => {
                     type="submit"
                     variant="contained"
                     startIcon={<Save />}
-                    disabled={loading}
+                    disabled={submitting}
                     sx={{
                       borderRadius: 2,
                       textTransform: 'none',
@@ -526,7 +532,7 @@ const CreateProduct = () => {
                       minWidth: 120
                     }}
                   >
-                    {loading ? (
+                    {submitting ? (
                       <CircularProgress size={20} color="inherit" />
                     ) : (
                       isEditing ? 'Update Product' : 'Create Product'

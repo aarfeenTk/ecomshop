@@ -3,10 +3,10 @@ import axios from 'axios';
 
 export const getProducts = createAsyncThunk(
   'products/getProducts',
-  async (_, { rejectWithValue }) => {
+  async ({ page = 1, limit = 12 } = {}, { rejectWithValue }) => {
     try {
-      const response = await axios.get('/api/products');
-      return response.data.data;
+      const response = await axios.get(`/api/products?page=${page}&limit=${limit}`);
+      return response.data;
     } catch (error) {
       return rejectWithValue(error.response.data.message);
     }
@@ -58,6 +58,10 @@ export const updateProduct = createAsyncThunk(
   }
 );
 
+/**
+ * Delete product with active order validation
+ * Backend will check for active orders and return error if found
+ */
 export const deleteProduct = createAsyncThunk(
   'products/deleteProduct',
   async (id, { rejectWithValue }) => {
@@ -67,6 +71,30 @@ export const deleteProduct = createAsyncThunk(
         headers: { Authorization: `Bearer ${token}` },
       });
       return id;
+    } catch (error) {
+      // Return full error response for active orders check
+      return rejectWithValue({
+        message: error.response?.data?.message || 'Failed to delete product',
+        activeOrdersCount: error.response?.data?.activeOrdersCount || 0,
+        canSoftDelete: error.response?.data?.canSoftDelete || false,
+      });
+    }
+  }
+);
+
+/**
+ * Soft delete product (mark as unavailable without deleting)
+ * Use this when product has active orders
+ */
+export const softDeleteProduct = createAsyncThunk(
+  'products/softDeleteProduct',
+  async (id, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.patch(`/api/products/${id}/soft-delete`, null, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return response.data.data;
     } catch (error) {
       return rejectWithValue(error.response.data.message);
     }
@@ -80,10 +108,20 @@ const productSlice = createSlice({
     product: null,
     loading: false,
     error: null,
+    deletingId: null,
+    pagination: {
+      page: 1,
+      pages: 1,
+      total: 0,
+      limit: 12,
+    },
   },
   reducers: {
     clearError: (state) => {
       state.error = null;
+    },
+    clearDeletingState: (state) => {
+      state.deletingId = null;
     },
   },
   extraReducers: (builder) => {
@@ -94,7 +132,13 @@ const productSlice = createSlice({
       })
       .addCase(getProducts.fulfilled, (state, action) => {
         state.loading = false;
-        state.products = action.payload;
+        state.products = action.payload.data;
+        state.pagination = {
+          page: action.payload.page,
+          pages: action.payload.pages,
+          total: action.payload.total,
+          limit: action.payload.limit || 12,
+        };
       })
       .addCase(getProducts.rejected, (state, action) => {
         state.loading = false;
@@ -121,11 +165,37 @@ const productSlice = createSlice({
           state.products[index] = action.payload;
         }
       })
+      .addCase(deleteProduct.pending, (state, action) => {
+        state.deletingId = action.meta.arg.id;
+        state.loading = true;
+      })
       .addCase(deleteProduct.fulfilled, (state, action) => {
-        state.products = state.products.filter(p => p._id !== action.payload);
+        state.deletingId = null;
+        state.loading = false;
+        // Soft delete: mark as deleted instead of removing
+        const index = state.products.findIndex(p => p._id === action.payload);
+        if (index !== -1) {
+          state.products[index] = {
+            ...state.products[index],
+            isDeleted: true,
+            active: false,
+            stock: 0,
+          };
+        }
+      })
+      .addCase(deleteProduct.rejected, (state, action) => {
+        state.deletingId = null;
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(softDeleteProduct.fulfilled, (state, action) => {
+        const index = state.products.findIndex(p => p._id === action.payload._id);
+        if (index !== -1) {
+          state.products[index] = action.payload;
+        }
       });
   },
 });
 
-export const { clearError } = productSlice.actions;
+export const { clearError, clearDeletingState } = productSlice.actions;
 export default productSlice.reducer;

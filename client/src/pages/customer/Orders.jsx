@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link as RouterLink } from 'react-router-dom';
 import { getMyOrders } from '../../redux/slices/orderSlice';
@@ -15,7 +15,8 @@ import {
   CircularProgress,
   Divider,
   useTheme,
-  IconButton
+  IconButton,
+  Pagination
 } from '@mui/material';
 import {
   Visibility,
@@ -28,11 +29,13 @@ import {
 const Orders = () => {
   const theme = useTheme();
   const dispatch = useDispatch();
-  const { orders, loading } = useSelector(state => state.orders);
+  const { orders, loading, pagination } = useSelector(state => state.orders);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
-    dispatch(getMyOrders());
-  }, [dispatch]);
+    dispatch(getMyOrders({ page: currentPage, limit: itemsPerPage }));
+  }, [dispatch, currentPage]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -132,20 +135,21 @@ const Orders = () => {
           </Button>
         </Paper>
       ) : (
-        <Grid container spacing={3}>
-          {orders.map((order) => (
-            <Grid item xs={12} sm={6} md={4} key={order._id}>
-              <Card
-                elevation={1}
-                sx={{
-                  borderRadius: 2,
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: theme.shadows[8],
-                  },
-                }}
-              >
+        <>
+          <Grid container spacing={3}>
+            {orders.map((order) => (
+              <Grid item xs={12} sm={6} md={4} key={order._id}>
+                <Card
+                  elevation={1}
+                  sx={{
+                    borderRadius: 2,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: theme.shadows[8],
+                    },
+                  }}
+                >
                 <CardContent sx={{ p: 2.5 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                     <Box>
@@ -231,6 +235,26 @@ const Orders = () => {
             </Grid>
           ))}
         </Grid>
+
+        {/* Pagination */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6, mb: 4 }}>
+          <Pagination
+            count={pagination.pages}
+            page={pagination.page}
+            onChange={(e, page) => {
+              setCurrentPage(page);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            color="primary"
+            size="large"
+            showFirstButton
+            showLastButton
+          />
+        </Box>
+        <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mb: 2 }}>
+          Showing {orders.length} of {pagination.total} orders
+        </Typography>
+      </>
       )}
     </Container>
   );

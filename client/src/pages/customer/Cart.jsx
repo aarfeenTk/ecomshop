@@ -60,7 +60,7 @@ const Cart = () => {
     if (value === '' || value === '-') {
       return;
     }
-    
+
     const quantity = parseInt(value, 10);
     if (!isNaN(quantity) && quantity >= 1) {
       dispatch(updateCartItem({ productId, quantity }));
@@ -68,7 +68,11 @@ const Cart = () => {
   };
 
   const calculateSubtotal = () => {
-    return items.reduce((total, item) => total + (item.product.price * item.quantity), 0);
+    return items.reduce((total, item) => {
+      // Exclude unavailable products from calculation
+      if (!item.product || item.product.isDeleted || !item.product.active) return total;
+      return total + (item.product.price * item.quantity);
+    }, 0);
   };
 
   const calculateShipping = () => {
@@ -78,6 +82,11 @@ const Cart = () => {
 
   const calculateTotal = () => {
     return calculateSubtotal() + calculateShipping();
+  };
+
+  // Get only available items for checkout
+  const getAvailableItems = () => {
+    return items.filter(item => item.product && !item.product.isDeleted && item.product.active);
   };
 
   if (loading) {
@@ -140,152 +149,177 @@ const Cart = () => {
         {/* Cart Items */}
         <Grid item xs={12} md={8}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {items.map((item) => (
-              <Card
-                key={item._id}
-                elevation={1}
-                sx={{
-                  borderRadius: 2,
-                  overflow: 'hidden',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    boxShadow: theme.shadows[4],
-                  }
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Grid container spacing={3} alignItems="center">
-                    {/* Product Image */}
-                    <Grid item xs={12} sm={3}>
-                      <CardMedia
-                        component="img"
-                        image={item.product.image || 'https://via.placeholder.com/100x100?text=Product'}
-                        alt={item.product.name}
-                        sx={{
-                          width: '100%',
-                          height: 100,
-                          objectFit: 'cover',
-                          borderRadius: 2
-                        }}
-                      />
-                    </Grid>
-
-                    {/* Product Details */}
-                    <Grid item xs={12} sm={5}>
-                      <Box>
-                        <Typography
-                          variant="h6"
+            {items.map((item) => {
+              const isProductUnavailable = !item.product || item.product.isDeleted || !item.product.active;
+              
+              return (
+                <Card
+                  key={item._id}
+                  elevation={1}
+                  sx={{
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      boxShadow: theme.shadows[4],
+                    },
+                    opacity: isProductUnavailable ? 0.7 : 1,
+                    backgroundColor: isProductUnavailable ? 'grey.50' : 'background.paper'
+                  }}
+                >
+                  <CardContent sx={{ p: 3 }}>
+                    <Grid container spacing={3} alignItems="center">
+                      {/* Product Image */}
+                      <Grid item xs={12} sm={3}>
+                        <CardMedia
+                          component="img"
+                          image={item.product?.image || 'https://via.placeholder.com/100x100?text=Product'}
+                          alt={item.product?.name || 'Unavailable Product'}
                           sx={{
-                            fontWeight: 600,
-                            mb: 1,
-                            lineHeight: 1.3
-                          }}
-                        >
-                          {item.product.name}
-                        </Typography>
-                        <Typography
-                          variant="h6"
-                          color="primary.main"
-                          sx={{ fontWeight: 700 }}
-                        >
-                          ${item.product.price}
-                        </Typography>
-                        {item.product.stock < item.quantity && (
-                          <Chip
-                            label="Insufficient stock"
-                            size="small"
-                            color="error"
-                            variant="outlined"
-                            sx={{ mt: 1 }}
-                          />
-                        )}
-                      </Box>
-                    </Grid>
-
-                    {/* Quantity Controls */}
-                    <Grid item xs={12} sm={2}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleQuantityChange(item.product._id, item.quantity - 1)}
-                          disabled={item.quantity <= 1}
-                          sx={{
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            borderRadius: 1
-                          }}
-                        >
-                          <Remove fontSize="small" />
-                        </IconButton>
-                        <TextField
-                          key={`quantity-${item._id}-${item.quantity}`} // Force re-render when quantity changes
-                          size="small"
-                          type="number"
-                          defaultValue={item.quantity}
-                          onBlur={(e) => handleQuantityInputChange(item.product._id, e.target.value)}
-                          inputProps={{
-                            min: 1,
-                            max: item.product.stock,
-                            style: { 
-                              textAlign: 'center',
-                              width: '60px',
-                              fontSize: '16px',
-                              fontWeight: 600
-                            }
-                          }}
-                          sx={{
-                            width: '60px',
-                            minWidth: '60px',
-                            maxWidth: '60px',
-                            '& .MuiOutlinedInput-input': {
-                              textAlign: 'center',
-                              padding: '6px',
-                              fontSize: '16px',
-                              fontWeight: 600
-                            },
-                            '& .MuiOutlinedInput-root': {
-                              borderRadius: 1
-                            }
+                            width: '100%',
+                            height: 100,
+                            objectFit: 'cover',
+                            borderRadius: 2,
+                            filter: isProductUnavailable ? 'grayscale(100%)' : 'none'
                           }}
                         />
-                        <IconButton
-                          size="small"
-                          onClick={() => handleQuantityChange(item.product._id, item.quantity + 1)}
-                          disabled={item.quantity >= item.product.stock}
-                          sx={{
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            borderRadius: 1
-                          }}
-                        >
-                          <Add fontSize="small" />
-                        </IconButton>
-                      </Box>
-                    </Grid>
+                      </Grid>
 
-                    {/* Item Total and Remove */}
-                    <Grid item xs={12} sm={2}>
-                      <Box sx={{ textAlign: 'right' }}>
-                        <Typography
-                          variant="h6"
-                          sx={{ fontWeight: 700, mb: 1 }}
-                        >
-                          ${(item.product.price * item.quantity).toFixed(2)}
-                        </Typography>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleRemoveItem(item.product._id)}
-                          color="error"
-                          sx={{ ml: 'auto' }}
-                        >
-                          <Delete fontSize="small" />
-                        </IconButton>
-                      </Box>
+                      {/* Product Details */}
+                      <Grid item xs={12} sm={5}>
+                        <Box>
+                          <Typography
+                            variant="h6"
+                            sx={{
+                              fontWeight: 600,
+                              mb: 1,
+                              lineHeight: 1.3,
+                              color: isProductUnavailable ? 'text.secondary' : 'text.primary'
+                            }}
+                          >
+                            {item.product?.name || 'Product No Longer Available'}
+                          </Typography>
+                          {isProductUnavailable ? (
+                            <Chip
+                              label="No longer available"
+                              size="small"
+                              color="error"
+                              sx={{ mt: 1 }}
+                            />
+                          ) : (
+                            <Typography
+                              variant="h6"
+                              color="primary.main"
+                              sx={{ fontWeight: 700 }}
+                            >
+                              ${item.product.price}
+                            </Typography>
+                          )}
+                          {!isProductUnavailable && item.product.stock < item.quantity && (
+                            <Chip
+                              label="Insufficient stock"
+                              size="small"
+                              color="error"
+                              variant="outlined"
+                              sx={{ mt: 1 }}
+                            />
+                          )}
+                        </Box>
+                      </Grid>
+
+                      {/* Quantity Controls */}
+                      <Grid item xs={12} sm={2}>
+                        {isProductUnavailable ? (
+                          <Typography variant="body2" color="error" sx={{ fontWeight: 600 }}>
+                            Unavailable
+                          </Typography>
+                        ) : (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleQuantityChange(item.product._id, item.quantity - 1)}
+                              disabled={item.quantity <= 1}
+                              sx={{
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                borderRadius: 1
+                              }}
+                            >
+                              <Remove fontSize="small" />
+                            </IconButton>
+                            <TextField
+                              key={`quantity-${item._id}-${item.quantity}`}
+                              size="small"
+                              type="number"
+                              defaultValue={item.quantity}
+                              onBlur={(e) => handleQuantityInputChange(item.product._id, e.target.value)}
+                              inputProps={{
+                                min: 1,
+                                max: item.product.stock,
+                                style: {
+                                  textAlign: 'center',
+                                  width: '60px',
+                                  fontSize: '16px',
+                                  fontWeight: 600
+                                }
+                              }}
+                              sx={{
+                                width: '60px',
+                                minWidth: '60px',
+                                maxWidth: '60px',
+                                '& .MuiOutlinedInput-input': {
+                                  textAlign: 'center',
+                                  padding: '6px',
+                                  fontSize: '16px',
+                                  fontWeight: 600
+                                },
+                                '& .MuiOutlinedInput-root': {
+                                  borderRadius: 1
+                                }
+                              }}
+                            />
+                            <IconButton
+                              size="small"
+                              onClick={() => handleQuantityChange(item.product._id, item.quantity + 1)}
+                              disabled={item.quantity >= item.product.stock}
+                              sx={{
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                borderRadius: 1
+                              }}
+                            >
+                              <Add fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        )}
+                      </Grid>
+
+                      {/* Item Total and Remove */}
+                      <Grid item xs={12} sm={2}>
+                        <Box sx={{ textAlign: 'right' }}>
+                          {!isProductUnavailable && (
+                            <Typography
+                              variant="h6"
+                              sx={{ fontWeight: 700, mb: 1 }}
+                            >
+                              ${(item.product.price * item.quantity).toFixed(2)}
+                            </Typography>
+                          )}
+                          <IconButton
+                            size="small"
+                            onClick={() => handleRemoveItem(item.product?._id || item._id)}
+                            color="error"
+                            sx={{ ml: 'auto' }}
+                          >
+                            <Delete fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      </Grid>
                     </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </Box>
         </Grid>
 
@@ -346,7 +380,16 @@ const Cart = () => {
               fullWidth
               variant="contained"
               size="large"
-              onClick={() => navigate('/checkout')}
+              onClick={() => {
+                // Only proceed to checkout if there are available items
+                const availableItems = getAvailableItems();
+                if (availableItems.length === 0) {
+                  alert('Your cart only contains unavailable products. Please add available products to proceed.');
+                  return;
+                }
+                navigate('/checkout');
+              }}
+              disabled={getAvailableItems().length === 0}
               sx={{
                 py: 1.5,
                 borderRadius: 2,

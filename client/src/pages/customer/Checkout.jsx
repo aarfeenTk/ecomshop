@@ -35,6 +35,11 @@ const Checkout = () => {
   const { items } = useSelector(state => state.cart);
   const { loading } = useSelector(state => state.orders);
 
+  // Filter out unavailable products (soft-deleted or inactive)
+  const availableItems = items.filter(
+    item => item.product && !item.product.isDeleted && item.product.active
+  );
+
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -95,12 +100,12 @@ const Checkout = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
-    if (items.length === 0) {
+    if (availableItems.length === 0) {
       navigate('/cart');
       return;
     }
@@ -120,7 +125,7 @@ const Checkout = () => {
   };
 
   const calculateSubtotal = () => {
-    return items.reduce((total, item) => total + (item.product.price * item.quantity), 0);
+    return availableItems.reduce((total, item) => total + (item.product.price * item.quantity), 0);
   };
 
   const calculateShipping = () => {
@@ -132,7 +137,7 @@ const Checkout = () => {
     return calculateSubtotal() + calculateShipping();
   };
 
-  if (items.length === 0) {
+  if (availableItems.length === 0) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Paper
@@ -145,15 +150,18 @@ const Checkout = () => {
           }}
         >
           <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
-            Your cart is empty
+            No available products in cart
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2, mb: 3 }}>
+            Some items in your cart may no longer be available.
           </Typography>
           <Button
             variant="contained"
             startIcon={<ArrowBack />}
-            onClick={() => navigate('/products')}
+            onClick={() => navigate('/cart')}
             sx={{ mt: 2 }}
           >
-            Continue Shopping
+            Back to Cart
           </Button>
         </Paper>
       </Container>
@@ -357,9 +365,9 @@ const Checkout = () => {
 
             <Box sx={{ mb: 2 }}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                Order Items ({items.length})
+                Order Items ({availableItems.length})
               </Typography>
-              {items.map((item) => (
+              {availableItems.map((item) => (
                 <Box
                   key={item._id}
                   sx={{

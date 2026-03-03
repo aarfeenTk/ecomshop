@@ -22,7 +22,8 @@ import {
   Box,
   Chip,
   Skeleton,
-  useTheme
+  useTheme,
+  Pagination
 } from '@mui/material';
 import { ShoppingCart, Search } from '@mui/icons-material';
 
@@ -30,16 +31,16 @@ const Products = () => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { products, loading } = useSelector(state => state.products);
+  const { products, loading, pagination } = useSelector(state => state.products);
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
   useEffect(() => {
-    if (!loading && products.length === 0) {
-      dispatch(getProducts());
-    }
-  }, [dispatch, loading]);
+    dispatch(getProducts({ page: currentPage, limit: itemsPerPage }));
+  }, [dispatch, currentPage]);
 
   useEffect(() => {
     let filtered = products;
@@ -182,27 +183,28 @@ const Products = () => {
           </Typography>
         </Box>
       ) : (
-        <Grid container spacing={3}>
-          {filteredProducts.map((product) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={product._id}>
-              <Card
-                component={Link}
-                to={`/products/${product._id}`}
-                elevation={1}
-                sx={{
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  borderRadius: 2,
-                  transition: 'all 0.3s ease',
-                  textDecoration: 'none',
-                  color: 'inherit',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: theme.shadows[8],
-                  },
-                }}
-              >
+        <>
+          <Grid container spacing={3}>
+            {filteredProducts.map((product) => (
+              <Grid item xs={12} sm={6} md={4} lg={3} key={product._id}>
+                <Card
+                  component={Link}
+                  to={`/products/${product._id}`}
+                  elevation={1}
+                  sx={{
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    borderRadius: 2,
+                    transition: 'all 0.3s ease',
+                    textDecoration: 'none',
+                    color: 'inherit',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: theme.shadows[8],
+                    },
+                  }}
+                >
                 <CardMedia
                   component="img"
                   height="200"
@@ -290,6 +292,26 @@ const Products = () => {
             </Grid>
           ))}
         </Grid>
+        
+        {/* Pagination */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6, mb: 4 }}>
+          <Pagination
+            count={pagination.pages}
+            page={pagination.page}
+            onChange={(e, page) => {
+              setCurrentPage(page);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            color="primary"
+            size="large"
+            showFirstButton
+            showLastButton
+          />
+        </Box>
+        <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mb: 2 }}>
+          Showing {filteredProducts.length} of {pagination.total} products
+        </Typography>
+      </>
       )}
     </Container>
   );

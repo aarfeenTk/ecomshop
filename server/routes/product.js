@@ -6,6 +6,7 @@ const {
   createProduct,
   updateProduct,
   deleteProduct,
+  softDeleteProduct,
 } = require('../controllers/product');
 const { protect, authorize } = require('../middleware/auth');
 const { handleValidationErrors } = require('../middleware/validation');
@@ -59,5 +60,15 @@ router
     handleValidationErrors,
     deleteProduct
   );
+
+// Soft delete endpoint (alternative to hard delete)
+router.patch(
+  '/:id/soft-delete',
+  protect,
+  authorize('admin'),
+  param('id').isMongoId().withMessage('Invalid product ID'),
+  handleValidationErrors,
+  softDeleteProduct
+);
 
 module.exports = router;

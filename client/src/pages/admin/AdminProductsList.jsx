@@ -69,7 +69,8 @@ const AdminProductsList = () => {
   const drawerWidth = 280;
 
   useEffect(() => {
-    dispatch(getProducts());
+    // Fetch all products for admin (client-side pagination is used)
+    dispatch(getProducts({ page: 1, limit: 1000 }));
   }, [dispatch]);
 
   const handleDrawerToggle = () => {
@@ -103,10 +104,30 @@ const AdminProductsList = () => {
       .then(() => {
         setDeleteDialogOpen(false);
         setSelectedProduct(null);
-        setSnackbar({ open: true, message: 'Product deleted successfully', severity: 'success' });
+        setSnackbar({ 
+          open: true, 
+          message: 'Product marked as unavailable (soft deleted)', 
+          severity: 'success' 
+        });
       })
-      .catch(() => {
-        setSnackbar({ open: true, message: 'Failed to delete product', severity: 'error' });
+      .catch((error) => {
+        setDeleteDialogOpen(false);
+        setSelectedProduct(null);
+        
+        // Check if error is about active orders
+        if (error.activeOrdersCount > 0) {
+          setSnackbar({
+            open: true,
+            message: `Cannot delete: Product has ${error.activeOrdersCount} active order(s). Consider marking as unavailable instead.`,
+            severity: 'warning'
+          });
+        } else {
+          setSnackbar({ 
+            open: true, 
+            message: error.message || 'Failed to delete product', 
+            severity: 'error' 
+          });
+        }
       })
       .finally(() => {
         setDeleteLoading(prev => ({ ...prev, [productId]: false }));
@@ -342,7 +363,7 @@ const AdminProductsList = () => {
             <TableContainer sx={{ maxHeight: 600 }}>
               <Table sx={{ '& .MuiTableCell-root': { py: 2 } }}>
                 <TableHead>
-                  <TableRow sx={{ 
+                  <TableRow sx={{
                     bgcolor: 'grey.50',
                     '& .MuiTableCell-head': {
                       fontWeight: 600,
@@ -362,19 +383,59 @@ const AdminProductsList = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {paginatedProducts.map((product, index) => (
-                    <TableRow 
-                      key={product._id} 
-                      hover
-                      sx={{ 
-                        '&:hover': { bgcolor: 'action.hover' },
-                        '& .MuiTableCell-body': {
-                          borderColor: 'divider',
-                          fontSize: '0.875rem'
-                        },
-                        transition: 'all 0.2s ease-in-out'
-                      }}
-                    >
+                  {paginatedProducts.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={7}
+                        align="center"
+                        sx={{ py: 8 }}
+                      >
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                          <Avatar
+                            sx={{
+                              width: 64,
+                              height: 64,
+                              bgcolor: 'grey.200',
+                              mb: 1
+                            }}
+                          >
+                            <Inventory sx={{ fontSize: 32, color: 'text.secondary' }} />
+                          </Avatar>
+                          <Typography variant="h6" color="text.secondary" fontWeight={600}>
+                            No Products Found
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {searchTerm || filterCategory !== 'all'
+                              ? 'Try adjusting your search or filters'
+                              : 'Get started by creating your first product'}
+                          </Typography>
+                          {!searchTerm && filterCategory === 'all' && (
+                            <Button
+                              variant="contained"
+                              startIcon={<Add />}
+                              onClick={() => navigate('/admin/products/create')}
+                              sx={{ mt: 2, borderRadius: 2 }}
+                            >
+                              Add Product
+                            </Button>
+                          )}
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedProducts.map((product) => (
+                      <TableRow
+                        key={product._id}
+                        hover
+                        sx={{
+                          '&:hover': { bgcolor: 'action.hover' },
+                          '& .MuiTableCell-body': {
+                            borderColor: 'divider',
+                            fontSize: '0.875rem'
+                          },
+                          transition: 'all 0.2s ease-in-out'
+                        }}
+                      >
                       <TableCell sx={{ pl: 3 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
                           {product.image ? (
@@ -540,7 +601,8 @@ const AdminProductsList = () => {
                         </Box>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>
