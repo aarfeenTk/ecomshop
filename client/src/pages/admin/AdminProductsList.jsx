@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { getProducts, deleteProduct } from '../redux/slices/productSlice';
-import { logout } from '../redux/slices/authSlice';
+import { getProducts, deleteProduct } from '../../redux/slices/productSlice';
+import { logout } from '../../redux/slices/authSlice';
 
 import {
   Typography,
@@ -47,9 +47,9 @@ import {
   TrendingUp,
   Store,
 } from '@mui/icons-material';
-import ConfirmDeleteProductModal from '../components/Modals/ConfirmDeleteModal';
-import AdminSidebar from '../components/AdminSidebar';
-import AdminAppBar from '../components/AdminAppBar';
+import ConfirmDeleteProductModal from '../../components/Modals/ConfirmDeleteModal';
+import AdminSidebar from '../../components/layout/AdminSidebar';
+import AdminAppBar from '../../components/layout/AdminAppBar';
 
 const AdminProductsList = () => {
   const theme = useTheme();

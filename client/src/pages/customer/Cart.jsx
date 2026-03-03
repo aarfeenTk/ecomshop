@@ -29,7 +29,7 @@ import {
   updateCartItem,
   removeFromCart,
   getCart
-} from '../redux/slices/cartSlice';
+} from '../../redux/slices/cartSlice';
 
 const Cart = () => {
   const theme = useTheme();

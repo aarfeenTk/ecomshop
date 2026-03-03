@@ -3,8 +3,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { getProducts } from '../redux/slices/productSlice';
-import { addToCart } from '../redux/slices/cartSlice';
+import { getProducts } from '../../redux/slices/productSlice';
+import { addToCart } from '../../redux/slices/cartSlice';
 import {
   Container,
   Grid,

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { getProducts } from '../redux/slices/productSlice';
-import { addToCart } from '../redux/slices/cartSlice';
+import { getProducts } from '../../redux/slices/productSlice';
+import { addToCart } from '../../redux/slices/cartSlice';
 import {
   Container,
   Grid,

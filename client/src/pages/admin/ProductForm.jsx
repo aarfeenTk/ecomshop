@@ -38,10 +38,10 @@ import {
   Store,
   AttachFile
 } from '@mui/icons-material';
-import { createProduct, updateProduct } from '../redux/slices/productSlice';
-import { getProducts } from '../redux/slices/productSlice';
-import AdminSidebar from '../components/AdminSidebar';
-import AdminAppBar from '../components/AdminAppBar';
+import { createProduct, updateProduct } from '../../redux/slices/productSlice';
+import { getProducts } from '../../redux/slices/productSlice';
+import AdminSidebar from '../../components/layout/AdminSidebar';
+import AdminAppBar from '../../components/layout/AdminAppBar';
 
 const CreateProduct = () => {
   const theme = useTheme();

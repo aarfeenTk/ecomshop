@@ -4,22 +4,22 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { Container, Box } from '@mui/material';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import Header from './components/Header';
-import Footer from './components/Footer';
-import ProtectedRoute from './components/ProtectedRoute';
-import AdminRoute from './components/AdminRoute';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Products from './pages/Products';
-import ProductDetail from './pages/ProductDetail';
-import OrderDetail from './pages/OrderDetail';
-import Cart from './pages/Cart';
-import Checkout from './pages/Checkout';
-import Orders from './pages/Orders';
-import AdminProductsList from './pages/AdminProductsList';
-import AdminOrders from './pages/AdminOrders';
-import ProductForm from './pages/ProductForm';
+import Header from './components/layout/Header';
+import Footer from './components/layout/Footer';
+import ProtectedRoute from './guards/ProtectedRoute';
+import AdminRoute from './guards/AdminRoute';
+import Home from './pages/customer/Home';
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import Products from './pages/customer/Products';
+import ProductDetail from './pages/customer/ProductDetail';
+import OrderDetail from './pages/customer/OrderDetail';
+import Cart from './pages/customer/Cart';
+import Checkout from './pages/customer/Checkout';
+import Orders from './pages/customer/Orders';
+import AdminProductsList from './pages/admin/AdminProductsList';
+import AdminOrders from './pages/admin/AdminOrders';
+import ProductForm from './pages/admin/ProductForm';
 
 const theme = createTheme({
   palette: {

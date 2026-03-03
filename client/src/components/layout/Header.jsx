@@ -2,9 +2,8 @@ import { AppBar, Toolbar, Typography, Button, IconButton, Badge, Box, useMediaQu
 import { ShoppingCart, Menu as MenuIcon, AccountCircle } from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { logout } from '../redux/slices/authSlice';
-import { clearCart } from '../redux/slices/cartSlice';
-import useCart from '../hooks/useCart';
+import { logout } from '../../redux/slices/authSlice';
+import { clearCart } from '../../redux/slices/cartSlice';
 import { useState } from 'react';
 
 const Header = () => {
@@ -16,7 +15,7 @@ const Header = () => {
   const isMenuOpen = Boolean(anchorEl);
   const isUserMenuOpen = Boolean(userMenuAnchorEl);
   const { user } = useSelector(state => state.auth);
-  const { items } = useCart(); // Use custom hook instead of direct selector
+  const { items } = useSelector(state => state.cart);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 

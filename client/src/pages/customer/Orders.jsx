@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link as RouterLink } from 'react-router-dom';
-import { getMyOrders } from '../redux/slices/orderSlice';
+import { getMyOrders } from '../../redux/slices/orderSlice';
 import {
   Container,
   Typography,

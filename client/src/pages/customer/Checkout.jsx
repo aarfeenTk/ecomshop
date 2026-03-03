@@ -24,9 +24,9 @@ import {
   LocalShipping,
   Security
 } from '@mui/icons-material';
-import { createOrder } from '../redux/slices/orderSlice';
-import { getCart, clearCart } from '../redux/slices/cartSlice';
-import { getProducts } from '../redux/slices/productSlice';
+import { createOrder } from '../../redux/slices/orderSlice';
+import { getCart, clearCart } from '../../redux/slices/cartSlice';
+import { getProducts } from '../../redux/slices/productSlice';
 
 const Checkout = () => {
   const theme = useTheme();

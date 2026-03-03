@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { register } from '../redux/slices/authSlice';
+import { register } from '../../redux/slices/authSlice';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   Container,

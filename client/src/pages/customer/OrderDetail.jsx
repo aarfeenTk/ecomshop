@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { getMyOrders } from '../redux/slices/orderSlice';
+import { getMyOrders } from '../../redux/slices/orderSlice';
 import {
   Container,
   Typography,

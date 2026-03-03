@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { getOrders, updateOrderStatus, clearError } from '../redux/slices/orderSlice';
-import { ORDER_STATUSES, PAYMENT_METHODS, FILTER_OPTIONS } from '../utils/constants';
-import AdminSidebar from '../components/AdminSidebar';
-import AdminAppBar from '../components/AdminAppBar';
+import { getOrders, updateOrderStatus, clearError } from '../../redux/slices/orderSlice';
+import { ORDER_STATUSES, PAYMENT_METHODS, FILTER_OPTIONS } from '../../utils/constants';
+import AdminSidebar from '../../components/layout/AdminSidebar';
+import AdminAppBar from '../../components/layout/AdminAppBar';
 import {
   Container,
   Typography,

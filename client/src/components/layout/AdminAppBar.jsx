@@ -16,7 +16,7 @@ import {
   Menu as MenuIcon,
   Person,
 } from '@mui/icons-material';
-import { logout } from '../redux/slices/authSlice';
+import { logout } from '../../redux/slices/authSlice';
 
 const AdminAppBar = ({
   title,
