@@ -1,9 +1,11 @@
-import { useState, FormEvent, ChangeEvent } from "react";
+import { useState } from "react";
+import { useForm, SubmitHandler } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
 import { useDispatch } from "react-redux";
 import { useLogin } from "../../hooks/useAuth";
 import { setUser } from "../../redux/slices/authSlice";
+import { loginSchema, LoginFormData } from "../../validations/authValidation";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   Container,
   Box,
@@ -16,49 +18,52 @@ import {
   CircularProgress,
   Avatar,
   Divider,
+  InputAdornment,
+  IconButton,
 } from "@mui/material";
-import { LockOutlined } from "@mui/icons-material";
-import { LoginCredentials, User } from "../../types";
+import {
+  LockOutlined,
+  Visibility,
+  VisibilityOff,
+  Email,
+} from "@mui/icons-material";
 
-interface LoginError {
-  message: string;
-}
-
-const Login: React.FC = () => {
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [error, setError] = useState<string>("");
+const Login = () => {
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const loginMutation = useLogin();
   const loading = loginMutation.isPending;
-  const queryClient = useQueryClient();
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: yupResolver(loginSchema),
+    mode: "onBlur",
+  });
+
+  const onSubmit: SubmitHandler<LoginFormData> = (data) => {
     setError("");
-
-    const credentials: LoginCredentials = { email, password };
-
-    loginMutation.mutate(credentials, {
-      onSuccess: (user: User) => {
+    loginMutation.mutate(data, {
+      onSuccess: (user) => {
         dispatch(setUser(user));
-        queryClient.invalidateQueries({ queryKey: ["cart"] });
         navigate("/");
       },
       onError: (error: any) => {
-        setError(error.response?.data?.message || "Login failed");
+        setError(
+          error.response?.data?.message ||
+            "Login failed. Please check your credentials.",
+        );
       },
     });
   };
 
-  const handleEmailChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
-  };
-
-  const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setPassword(e.target.value);
+  const handleClickShowPassword = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -120,31 +125,60 @@ const Login: React.FC = () => {
             </Alert>
           )}
 
-          <Box component="form" onSubmit={handleSubmit} sx={{ width: "100%" }}>
+          <Box
+            component="form"
+            onSubmit={handleSubmit(onSubmit)}
+            sx={{ width: "100%" }}
+          >
             <TextField
               fullWidth
               label="Email Address"
               type="email"
-              value={email}
-              onChange={handleEmailChange}
+              {...register("email")}
+              error={!!errors.email}
+              helperText={errors.email?.message}
               margin="normal"
-              required
               variant="outlined"
               sx={{ mb: 2 }}
               autoComplete="email"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Email color="action" />
+                  </InputAdornment>
+                ),
+              }}
             />
 
             <TextField
               fullWidth
               label="Password"
-              type="password"
-              value={password}
-              onChange={handlePasswordChange}
+              type={showPassword ? "text" : "password"}
+              {...register("password")}
+              error={!!errors.password}
+              helperText={errors.password?.message}
               margin="normal"
-              required
               variant="outlined"
               sx={{ mb: 3 }}
               autoComplete="current-password"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockOutlined color="action" />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={handleClickShowPassword}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
 
             <Button

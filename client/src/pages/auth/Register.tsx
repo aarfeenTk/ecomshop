@@ -1,7 +1,13 @@
-import { useState, FormEvent, ChangeEvent } from "react";
+import { useState } from "react";
+import { useForm, SubmitHandler } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
 import { useDispatch } from "react-redux";
 import { useRegister } from "../../hooks/useAuth";
 import { setUser } from "../../redux/slices/authSlice";
+import {
+  registerSchema,
+  RegisterFormData,
+} from "../../validations/authValidation";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import {
   Container,
@@ -15,67 +21,61 @@ import {
   CircularProgress,
   Avatar,
   Divider,
+  InputAdornment,
+  IconButton,
 } from "@mui/material";
-import { PersonAddOutlined } from "@mui/icons-material";
-import { RegisterData, User } from "../../types";
+import {
+  PersonAddOutlined,
+  Visibility,
+  VisibilityOff,
+  Email,
+  Person,
+  Lock,
+} from "@mui/icons-material";
 
-interface FormData {
-  name: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-}
-
-const Register: React.FC = () => {
-  const [formData, setFormData] = useState<FormData>({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
-  const [error, setError] = useState<string>("");
+const Register = () => {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState("");
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const registerMutation = useRegister();
   const loading = registerMutation.isPending;
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterFormData>({
+    resolver: yupResolver(registerSchema),
+    mode: "onBlur",
+  });
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
+  const onSubmit: SubmitHandler<RegisterFormData> = (data) => {
     setError("");
-
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters");
-      return;
-    }
-
-    const registerData: RegisterData = {
-      name: formData.name,
-      email: formData.email,
-      password: formData.password,
-    };
+    const { confirmPassword, ...registerData } = data;
 
     registerMutation.mutate(registerData, {
-      onSuccess: (user: User) => {
+      onSuccess: (user) => {
         dispatch(setUser(user));
         navigate("/");
       },
       onError: (error: any) => {
-        setError(error.response?.data?.message || "Registration failed");
+        setError(
+          error.response?.data?.message ||
+            "Registration failed. Please try again.",
+        );
       },
     });
+  };
+
+  const handleClickShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const handleClickShowConfirmPassword = () => {
+    setShowConfirmPassword(!showConfirmPassword);
   };
 
   return (
@@ -137,60 +137,110 @@ const Register: React.FC = () => {
             </Alert>
           )}
 
-          <Box component="form" onSubmit={handleSubmit} sx={{ width: "100%" }}>
+          <Box
+            component="form"
+            onSubmit={handleSubmit(onSubmit)}
+            sx={{ width: "100%" }}
+          >
             <TextField
               fullWidth
               label="Full Name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
+              {...register("name")}
+              error={!!errors.name}
+              helperText={errors.name?.message}
               margin="normal"
-              required
               variant="outlined"
               sx={{ mb: 2 }}
               autoComplete="name"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Person color="action" />
+                  </InputAdornment>
+                ),
+              }}
             />
 
             <TextField
               fullWidth
               label="Email Address"
-              name="email"
               type="email"
-              value={formData.email}
-              onChange={handleChange}
+              {...register("email")}
+              error={!!errors.email}
+              helperText={errors.email?.message}
               margin="normal"
-              required
               variant="outlined"
               sx={{ mb: 2 }}
               autoComplete="email"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Email color="action" />
+                  </InputAdornment>
+                ),
+              }}
             />
 
             <TextField
               fullWidth
               label="Password"
-              name="password"
-              type="password"
-              value={formData.password}
-              onChange={handleChange}
+              type={showPassword ? "text" : "password"}
+              {...register("password")}
+              error={!!errors.password}
+              helperText={errors.password?.message}
               margin="normal"
-              required
               variant="outlined"
               sx={{ mb: 2 }}
               autoComplete="new-password"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Lock color="action" />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={handleClickShowPassword}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
 
             <TextField
               fullWidth
               label="Confirm Password"
-              name="confirmPassword"
-              type="password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
+              type={showConfirmPassword ? "text" : "password"}
+              {...register("confirmPassword")}
+              error={!!errors.confirmPassword}
+              helperText={errors.confirmPassword?.message}
               margin="normal"
-              required
               variant="outlined"
               sx={{ mb: 3 }}
               autoComplete="new-password"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Lock color="action" />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={handleClickShowConfirmPassword}
+                      edge="end"
+                    >
+                      {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
 
             <Button

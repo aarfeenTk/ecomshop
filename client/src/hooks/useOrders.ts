@@ -26,7 +26,7 @@ export function useCreateOrder() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["myOrders"] });
-      // Cart clearing will be handled by the Checkout component
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
     },
   });
 }

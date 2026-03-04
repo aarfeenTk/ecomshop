@@ -1,4 +1,6 @@
-import { useState, useEffect, useRef, ChangeEvent, FormEvent } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useForm, SubmitHandler, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Container,
@@ -15,28 +17,22 @@ import {
   Alert,
   CircularProgress,
   useTheme,
-  useMediaQuery,
   InputAdornment,
   Card,
   CardMedia,
   IconButton,
   Divider,
-  Chip,
   Toolbar,
-  Breadcrumbs,
-  Link,
-  SelectChangeEvent,
+  Avatar,
 } from "@mui/material";
 import {
   ArrowBack,
   Save,
   Upload,
-  Image as ImageIcon,
   Delete,
-  Add,
   Store,
+  Add,
 } from "@mui/icons-material";
-import { Avatar } from "@mui/material";
 import {
   useCreateProduct,
   useUpdateProduct,
@@ -44,58 +40,50 @@ import {
 } from "../../hooks/useProducts";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import AdminAppBar from "../../components/layout/AdminAppBar";
-import { Product } from "../../types";
+import {
+  productSchema,
+  ProductFormData,
+} from "../../validations/productValidation";
 
-interface FormData {
-  name: string;
-  description: string;
-  price: string;
-  category: string;
-  stock: string;
-  image: File | null;
-  imagePreview: string;
-}
-
-interface FormErrors {
-  [key: string]: string;
-}
-
-interface ProductData {
-  name: string;
-  description: string;
-  price: number;
-  stock: number;
-  category: string;
-  image: string;
-}
-
-const ProductForm: React.FC = () => {
+const ProductForm = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { data: productsData } = useProducts(1, 1000);
-  const products: Product[] = productsData?.data || [];
+  const products = productsData?.data || [];
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [imagePreview, setImagePreview] = useState("");
+  const [submitError, setSubmitError] = useState("");
+  const drawerWidth = 280;
+
   const createProductMutation = useCreateProduct();
   const updateProductMutation = useUpdateProduct();
 
-  const [formData, setFormData] = useState<FormData>({
-    name: "",
-    description: "",
-    price: "",
-    category: "",
-    stock: "",
-    image: null,
-    imagePreview: "",
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors },
+    setValue,
+    watch,
+  } = useForm<ProductFormData>({
+    resolver: yupResolver(productSchema),
+    mode: "onChange",
+    defaultValues: {
+      name: "",
+      description: "",
+      price: undefined as any,
+      stock: undefined as any,
+      category: "",
+      image: "",
+    },
   });
 
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [isEditing, setIsEditing] = useState<boolean>(false);
-  const submitting =
-    createProductMutation.isPending || updateProductMutation.isPending;
-
-  const [mobileOpen, setMobileOpen] = useState<boolean>(false);
-  const drawerWidth = 280;
+  const formData = watch();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -103,21 +91,19 @@ const ProductForm: React.FC = () => {
 
   useEffect(() => {
     if (id && products.length > 0) {
-      const product = products.find((p) => p._id === id);
+      const product = products.find((p: any) => p._id === id);
       if (product) {
-        setFormData({
-          name: product.name || "",
-          description: product.description || "",
-          price: product.price?.toString() || "",
-          stock: product.stock?.toString() || "",
-          category: product.category || "",
-          image: null,
-          imagePreview: product.image || "",
-        });
+        setValue("name", product.name);
+        setValue("description", product.description);
+        setValue("price", product.price);
+        setValue("stock", product.stock);
+        setValue("category", product.category);
+        setValue("image", product.image);
+        setImagePreview(product.image);
         setIsEditing(true);
       }
     }
-  }, [id, products]);
+  }, [id, products, setValue]);
 
   const categories = [
     "Electronics",
@@ -130,64 +116,32 @@ const ProductForm: React.FC = () => {
     "Other",
   ];
 
-  const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent,
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
-    }
-  };
-
-  const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       if (!file.type.startsWith("image/")) {
-        setErrors((prev) => ({
-          ...prev,
-          image: "Please select an image file",
-        }));
+        setValue("image", "", { shouldValidate: true });
         return;
       }
 
       if (file.size > 5 * 1024 * 1024) {
-        setErrors((prev) => ({
-          ...prev,
-          image: "Image size should be less than 5MB",
-        }));
+        setValue("image", "", { shouldValidate: true });
         return;
       }
 
       const reader = new FileReader();
       reader.onload = (e) => {
-        setFormData((prev) => ({
-          ...prev,
-          image: file,
-          imagePreview: e.target?.result as string,
-        }));
-        setErrors((prev) => ({
-          ...prev,
-          image: "",
-        }));
+        const result = e.target?.result as string;
+        setImagePreview(result);
+        setValue("image", result, { shouldValidate: true });
       };
       reader.readAsDataURL(file);
     }
   };
 
   const handleRemoveImage = () => {
-    setFormData((prev) => ({
-      ...prev,
-      image: null,
-      imagePreview: "",
-    }));
+    setImagePreview("");
+    setValue("image", "", { shouldValidate: true });
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -197,103 +151,37 @@ const ProductForm: React.FC = () => {
     fileInputRef.current?.click();
   };
 
-  const validateForm = () => {
-    const newErrors: FormErrors = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = "Product name is required";
-    }
-
-    if (!formData.description.trim()) {
-      newErrors.description = "Product description is required";
-    }
-
-    if (
-      !formData.price ||
-      isNaN(parseFloat(formData.price)) ||
-      parseFloat(formData.price) <= 0
-    ) {
-      newErrors.price = "Valid price is required";
-    }
-
-    if (
-      !formData.stock ||
-      isNaN(parseInt(formData.stock)) ||
-      parseInt(formData.stock) < 0
-    ) {
-      newErrors.stock = "Valid stock quantity is required";
-    }
-
-    if (!formData.category) {
-      newErrors.category = "Category is required";
-    }
-
-    if (!formData.image && !formData.imagePreview) {
-      newErrors.image = "Product image is required";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
+  const onSubmit: SubmitHandler<ProductFormData> = async (data) => {
+    setSubmitting(true);
+    setSubmitError("");
 
     try {
-      let imageUrl = formData.imagePreview;
+      let imageUrl = data.image;
 
-      if (formData.image && formData.image instanceof File) {
-        imageUrl = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(formData.image as File);
-        });
+      if (data.image && data.image.startsWith("data:")) {
+        imageUrl = data.image;
       }
 
-      const productData: ProductData = {
-        name: formData.name.trim(),
-        description: formData.description.trim(),
-        price: parseFloat(formData.price),
-        stock: parseInt(formData.stock),
-        category: formData.category,
+      const productData = {
+        name: data.name.trim(),
+        description: data.description.trim(),
+        price: parseFloat(data.price.toString()),
+        stock: parseInt(data.stock.toString()),
+        category: data.category,
         image: imageUrl,
       };
 
-      if (isEditing) {
-        updateProductMutation.mutate(
-          { id: id!, productData },
-          {
-            onSuccess: () => {
-              navigate("/admin/products");
-            },
-            onError: (error: any) => {
-              setErrors({
-                submit:
-                  error.response?.data?.message || "Failed to update product",
-              });
-            },
-          },
-        );
+      if (isEditing && id) {
+        await updateProductMutation.mutateAsync({ id, productData });
       } else {
-        createProductMutation.mutate(productData, {
-          onSuccess: () => {
-            navigate("/admin/products");
-          },
-          onError: (error: any) => {
-            setErrors({
-              submit:
-                error.response?.data?.message || "Failed to create product",
-            });
-          },
-        });
+        await createProductMutation.mutateAsync(productData);
       }
+
+      navigate("/admin/products");
     } catch (error: any) {
-      setErrors({ submit: error.message || "An unexpected error occurred" });
+      setSubmitError(error.response?.data?.message || "Failed to save product");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -384,11 +272,11 @@ const ProductForm: React.FC = () => {
                     }}
                     onClick={handleUploadClick}
                   >
-                    {formData.imagePreview ? (
+                    {imagePreview ? (
                       <Box sx={{ position: "relative" }}>
                         <CardMedia
                           component="img"
-                          image={formData.imagePreview}
+                          image={imagePreview}
                           alt="Product preview"
                           sx={{
                             width: "100%",
@@ -459,7 +347,7 @@ const ProductForm: React.FC = () => {
 
                   {errors.image && (
                     <Alert severity="error" sx={{ mt: 2 }}>
-                      {errors.image}
+                      {errors.image.message}
                     </Alert>
                   )}
                 </Box>
@@ -480,23 +368,21 @@ const ProductForm: React.FC = () => {
                     Product Information
                   </Typography>
 
-                  {errors.submit && (
+                  {submitError && (
                     <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
-                      {errors.submit}
+                      {submitError}
                     </Alert>
                   )}
 
-                  <Box component="form" onSubmit={handleSubmit}>
+                  <Box component="form" onSubmit={handleSubmit(onSubmit)}>
                     <Grid container spacing={3}>
                       <Grid item xs={12}>
                         <TextField
                           fullWidth
                           label="Product Name"
-                          name="name"
-                          value={formData.name}
-                          onChange={handleChange}
+                          {...register("name")}
                           error={!!errors.name}
-                          helperText={errors.name}
+                          helperText={errors.name?.message}
                           variant="outlined"
                           placeholder="Enter product name (e.g., iPhone 15 Pro)"
                           InputProps={{
@@ -513,91 +399,114 @@ const ProductForm: React.FC = () => {
                         <TextField
                           fullWidth
                           label="Description"
-                          name="description"
-                          value={formData.description}
-                          onChange={handleChange}
+                          {...register("description")}
                           error={!!errors.description}
-                          helperText={errors.description}
+                          helperText={errors.description?.message}
                           multiline
                           rows={4}
                           variant="outlined"
-                          InputProps={{
-                            placeholder:
-                              "Provide a detailed description of your product, including features, specifications, and benefits...",
-                          }}
+                          placeholder="Provide a detailed description of your product..."
                         />
                       </Grid>
 
                       <Grid item xs={12} sm={6}>
-                        <TextField
-                          fullWidth
-                          label="Price"
+                        <Controller
                           name="price"
-                          value={formData.price}
-                          onChange={handleChange}
-                          error={!!errors.price}
-                          helperText={errors.price}
-                          type="number"
-                          variant="outlined"
-                          placeholder="0.00"
-                          InputProps={{
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                $
-                              </InputAdornment>
-                            ),
-                          }}
+                          control={control}
+                          render={({ field }) => (
+                            <TextField
+                              {...field}
+                              fullWidth
+                              label="Price"
+                              error={!!errors.price}
+                              helperText={errors.price?.message}
+                              type="number"
+                              variant="outlined"
+                              placeholder="0.00"
+                              InputProps={{
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    $
+                                  </InputAdornment>
+                                ),
+                                inputProps: { min: 0, step: 0.01 },
+                              }}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                field.onChange(
+                                  value === "" ? undefined : parseFloat(value),
+                                );
+                              }}
+                              value={field.value ?? ""}
+                            />
+                          )}
                         />
                       </Grid>
 
                       <Grid item xs={12} sm={6}>
-                        <TextField
-                          fullWidth
-                          label="Stock Quantity"
+                        <Controller
                           name="stock"
-                          value={formData.stock}
-                          onChange={handleChange}
-                          error={!!errors.stock}
-                          helperText={errors.stock}
-                          type="number"
-                          variant="outlined"
-                          placeholder="0"
-                          InputProps={{
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <Add />
-                              </InputAdornment>
-                            ),
-                          }}
+                          control={control}
+                          render={({ field }) => (
+                            <TextField
+                              {...field}
+                              fullWidth
+                              label="Stock Quantity"
+                              error={!!errors.stock}
+                              helperText={errors.stock?.message}
+                              type="number"
+                              variant="outlined"
+                              placeholder="0"
+                              InputProps={{
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <Add />
+                                  </InputAdornment>
+                                ),
+                                inputProps: { min: 0 },
+                              }}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                field.onChange(
+                                  value === "" ? undefined : parseInt(value),
+                                );
+                              }}
+                              value={field.value ?? ""}
+                            />
+                          )}
                         />
                       </Grid>
 
                       <Grid item xs={12}>
-                        <FormControl fullWidth error={!!errors.category}>
-                          <InputLabel>Category</InputLabel>
-                          <Select
-                            name="category"
-                            value={formData.category}
-                            onChange={handleChange}
-                            label="Category"
-                            sx={{ borderRadius: 2 }}
-                          >
-                            {categories.map((category) => (
-                              <MenuItem key={category} value={category}>
-                                {category}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                          {errors.category && (
-                            <Typography
-                              variant="caption"
-                              color="error"
-                              sx={{ mt: 0.5, ml: 2 }}
-                            >
-                              {errors.category}
-                            </Typography>
+                        <Controller
+                          name="category"
+                          control={control}
+                          render={({ field }) => (
+                            <FormControl fullWidth error={!!errors.category}>
+                              <InputLabel>Category</InputLabel>
+                              <Select
+                                {...field}
+                                label="Category"
+                                sx={{ borderRadius: 2 }}
+                              >
+                                {categories.map((category) => (
+                                  <MenuItem key={category} value={category}>
+                                    {category}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                              {errors.category && (
+                                <Typography
+                                  variant="caption"
+                                  color="error"
+                                  sx={{ mt: 0.5, ml: 2 }}
+                                >
+                                  {errors.category.message}
+                                </Typography>
+                              )}
+                            </FormControl>
                           )}
-                        </FormControl>
+                        />
                       </Grid>
                     </Grid>
 

@@ -1,7 +1,12 @@
 import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useCreateOrder } from "../../hooks/useOrders";
+import { useCart } from "../../hooks/useCart";
+import { checkoutSchema } from "../../validations/checkoutValidation";
+import { RootState } from "../../redux/store";
 import {
   Container,
   Grid,
@@ -18,153 +23,62 @@ import {
   Alert,
   CircularProgress,
   useTheme,
-  SelectChangeEvent,
+  InputAdornment,
 } from "@mui/material";
 import {
   ArrowBack,
   CreditCard,
   LocalShipping,
   Security,
+  Email,
+  Phone,
+  Home,
+  Person,
 } from "@mui/icons-material";
-import { useCreateOrder } from "../../hooks/useOrders";
-import { useCart } from "../../hooks/useCart";
-import { useProducts } from "../../hooks/useProducts";
-import { CartItem, CreateOrderData, PaymentMethod } from "../../types";
-import { RootState } from "../../redux/store";
 
-interface FormData {
-  fullName: string;
-  email: string;
-  phone: string;
-  address: string;
-  paymentMethod: PaymentMethod;
-  transactionReference: string;
-}
-
-interface FormErrors {
-  [key: string]: string;
-}
-
-const Checkout: React.FC = () => {
+const Checkout = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { data: cartData } = useCart();
-  const items: CartItem[] = cartData?.data || [];
+  const items = cartData?.data || [];
   const createOrderMutation = useCreateOrder();
   const loading = createOrderMutation.isPending;
-  const { refetch: refetchProducts } = useProducts();
+  const user = useSelector((state: RootState) => state.auth.user);
 
   // Filter out unavailable products (soft-deleted or inactive)
   const availableItems = items.filter(
-    (item) => item.product && !item.product.isDeleted && item.product.active,
+    (item: any) =>
+      item.product && !item.product.isDeleted && item.product.active,
   );
 
-  const [formData, setFormData] = useState<FormData>({
-    fullName: "",
-    email: "",
-    phone: "",
-    address: "",
-    paymentMethod: "Cash on Delivery",
-    transactionReference: "",
+  const [submitError, setSubmitError] = useState("");
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    watch,
+  } = useForm({
+    resolver: yupResolver(checkoutSchema),
+    mode: "onBlur",
+    defaultValues: {
+      fullName: user?.name || "",
+      email: user?.email || "",
+      phone: "",
+      address: "",
+      paymentMethod: "Cash on Delivery",
+      transactionReference: "",
+    },
   });
-  const [errors, setErrors] = useState<FormErrors>({});
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement> | SelectChangeEvent,
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: FormErrors = {};
-
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = "Full name is required";
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid";
-    }
-
-    if (!formData.phone.trim()) {
-      newErrors.phone = "Phone number is required";
-    }
-
-    if (!formData.address.trim()) {
-      newErrors.address = "Address is required";
-    }
-
-    if (
-      formData.paymentMethod === "Bank Transfer" &&
-      !formData.transactionReference.trim()
-    ) {
-      newErrors.transactionReference =
-        "Transaction reference is required for bank transfer";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
-    if (availableItems.length === 0) {
-      navigate("/cart");
-      return;
-    }
-
-    createOrderMutation.mutate(formData as CreateOrderData, {
-      onSuccess: () => {
-        // Remove only available items from cart, keep unavailable ones
-        const currentCart = queryClient.getQueryData(["cart"]) as
-          | { success: boolean; data: CartItem[] }
-          | undefined;
-        if (currentCart && currentCart.data) {
-          const unavailableItems = currentCart.data.filter(
-            (item) =>
-              !item.product || item.product.isDeleted || !item.product.active,
-          );
-          queryClient.setQueryData(["cart"], {
-            ...currentCart,
-            data: unavailableItems,
-          });
-        }
-
-        refetchProducts();
-        navigate("/orders");
-      },
-      onError: (error: any) => {
-        setErrors({
-          submit: error.response?.data?.message || "Failed to create order",
-        });
-      },
-    });
-  };
+  const paymentMethod = watch("paymentMethod");
 
   const calculateSubtotal = () => {
-    return availableItems.reduce(
-      (total, item) => total + item.product!.price * item.quantity,
-      0,
-    );
+    return availableItems.reduce((total, item) => {
+      if (!item.product || item.product.isDeleted || !item.product.active)
+        return total;
+      return total + item.product.price * item.quantity;
+    }, 0);
   };
 
   const calculateShipping = () => {
@@ -174,6 +88,25 @@ const Checkout: React.FC = () => {
 
   const calculateTotal = () => {
     return calculateSubtotal() + calculateShipping();
+  };
+
+  const onSubmit = async (data: any) => {
+    if (availableItems.length === 0) {
+      navigate("/cart");
+      return;
+    }
+
+    createOrderMutation.mutate(data, {
+      onSuccess: () => {
+        navigate("/orders");
+      },
+      onError: (error: any) => {
+        setSubmitError(
+          error.response?.data?.message ||
+            "Failed to create order. Please try again.",
+        );
+      },
+    });
   };
 
   if (availableItems.length === 0) {
@@ -243,81 +176,111 @@ const Checkout: React.FC = () => {
               Shipping Information
             </Typography>
 
-            {errors.submit && (
+            {submitError && (
               <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
-                {errors.submit}
+                {submitError}
               </Alert>
             )}
 
-            <Box component="form" onSubmit={handleSubmit}>
+            <Box component="form" onSubmit={handleSubmit(onSubmit)}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Full Name"
+                  <Controller
                     name="fullName"
-                    value={formData.fullName}
-                    onChange={
-                      handleInputChange as React.ChangeEventHandler<HTMLInputElement>
-                    }
-                    error={!!errors.fullName}
-                    helperText={errors.fullName}
-                    required
-                    variant="outlined"
-                    sx={{ borderRadius: 2 }}
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="Full Name"
+                        error={!!errors.fullName}
+                        helperText={errors.fullName?.message}
+                        variant="outlined"
+                        sx={{ borderRadius: 2 }}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Person color="action" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    )}
                   />
                 </Grid>
 
                 <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Email Address"
+                  <Controller
                     name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={
-                      handleInputChange as React.ChangeEventHandler<HTMLInputElement>
-                    }
-                    error={!!errors.email}
-                    helperText={errors.email}
-                    required
-                    variant="outlined"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="Email Address"
+                        type="email"
+                        error={!!errors.email}
+                        helperText={errors.email?.message}
+                        variant="outlined"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Email color="action" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    )}
                   />
                 </Grid>
 
                 <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Phone Number"
+                  <Controller
                     name="phone"
-                    value={formData.phone}
-                    onChange={
-                      handleInputChange as React.ChangeEventHandler<HTMLInputElement>
-                    }
-                    error={!!errors.phone}
-                    helperText={errors.phone}
-                    required
-                    variant="outlined"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="Phone Number"
+                        error={!!errors.phone}
+                        helperText={errors.phone?.message}
+                        variant="outlined"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Phone color="action" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    )}
                   />
                 </Grid>
 
                 <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Shipping Address"
+                  <Controller
                     name="address"
-                    value={formData.address}
-                    onChange={
-                      handleInputChange as React.ChangeEventHandler<
-                        HTMLInputElement | HTMLTextAreaElement
-                      >
-                    }
-                    error={!!errors.address}
-                    helperText={errors.address}
-                    required
-                    variant="outlined"
-                    multiline
-                    rows={3}
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="Shipping Address"
+                        error={!!errors.address}
+                        helperText={errors.address?.message}
+                        variant="outlined"
+                        multiline
+                        rows={3}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Home color="action" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    )}
                   />
                 </Grid>
               </Grid>
@@ -334,49 +297,82 @@ const Checkout: React.FC = () => {
 
               <Grid container spacing={3}>
                 <Grid item xs={12}>
-                  <FormControl fullWidth required>
-                    <InputLabel>Payment Method</InputLabel>
-                    <Select
-                      name="paymentMethod"
-                      value={formData.paymentMethod}
-                      onChange={handleInputChange}
-                      label="Payment Method"
-                      sx={{ borderRadius: 2 }}
-                    >
-                      <MenuItem value="Cash on Delivery">
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                  <Controller
+                    name="paymentMethod"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControl
+                        fullWidth
+                        required
+                        error={!!errors.paymentMethod}
+                      >
+                        <InputLabel>Payment Method</InputLabel>
+                        <Select
+                          {...field}
+                          label="Payment Method"
+                          sx={{ borderRadius: 2 }}
                         >
-                          <LocalShipping fontSize="small" />
-                          Cash on Delivery
-                        </Box>
-                      </MenuItem>
-                      <MenuItem value="Bank Transfer">
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                        >
-                          <CreditCard fontSize="small" />
-                          Bank Transfer
-                        </Box>
-                      </MenuItem>
-                    </Select>
-                  </FormControl>
+                          <MenuItem value="Cash on Delivery">
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                              }}
+                            >
+                              <LocalShipping fontSize="small" />
+                              Cash on Delivery
+                            </Box>
+                          </MenuItem>
+                          <MenuItem value="Bank Transfer">
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                              }}
+                            >
+                              <CreditCard fontSize="small" />
+                              Bank Transfer
+                            </Box>
+                          </MenuItem>
+                        </Select>
+                        {errors.paymentMethod && (
+                          <Typography
+                            variant="caption"
+                            color="error"
+                            sx={{ mt: 0.5, ml: 2 }}
+                          >
+                            {errors.paymentMethod.message}
+                          </Typography>
+                        )}
+                      </FormControl>
+                    )}
+                  />
                 </Grid>
 
-                {formData.paymentMethod === "Bank Transfer" && (
+                {paymentMethod === "Bank Transfer" && (
                   <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Transaction Reference"
+                    <Controller
                       name="transactionReference"
-                      value={formData.transactionReference}
-                      onChange={
-                        handleInputChange as React.ChangeEventHandler<HTMLInputElement>
-                      }
-                      error={!!errors.transactionReference}
-                      helperText={errors.transactionReference}
-                      required
-                      variant="outlined"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          label="Transaction Reference"
+                          error={!!errors.transactionReference}
+                          helperText={errors.transactionReference?.message}
+                          variant="outlined"
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <CreditCard color="action" />
+                              </InputAdornment>
+                            ),
+                          }}
+                        />
+                      )}
                     />
                   </Grid>
                 )}
@@ -436,7 +432,7 @@ const Checkout: React.FC = () => {
               <Typography variant="body2" color="text.secondary" gutterBottom>
                 Order Items ({availableItems.length})
               </Typography>
-              {availableItems.map((item) => (
+              {availableItems.map((item: any) => (
                 <Box
                   key={item._id}
                   sx={{
@@ -450,14 +446,14 @@ const Checkout: React.FC = () => {
                 >
                   <Box sx={{ flex: 1, mr: 2 }}>
                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {item.product!.name}
+                      {item.product.name}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Qty: {item.quantity} × ${item.product!.price}
+                      Qty: {item.quantity} × ${item.product.price}
                     </Typography>
                   </Box>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    ${(item.product!.price * item.quantity).toFixed(2)}
+                    ${(item.product.price * item.quantity).toFixed(2)}
                   </Typography>
                 </Box>
               ))}
