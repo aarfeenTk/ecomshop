@@ -113,6 +113,7 @@ api.interceptors.response.use(
 
     // No refresh token, redirect to login
     if (!refreshToken) {
+      console.log('No refresh token found, redirecting to login');
       clearTokens();
       // Only redirect if not already on login page
       if (window.location.pathname !== '/login') {
@@ -125,10 +126,12 @@ api.interceptors.response.use(
     isRefreshing = true;
 
     try {
+      console.log('Attempting to refresh token...');
       // Attempt to refresh token using the same api instance to ensure correct baseURL
       const response = await api.post('/api/auth/refresh', {
         refreshToken,
       });
+      console.log('Token refresh response:', response.data);
 
       const { accessToken, refreshToken: newRefreshToken } = response.data;
 

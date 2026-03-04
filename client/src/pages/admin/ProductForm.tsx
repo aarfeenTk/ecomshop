@@ -36,7 +36,7 @@ import {
 import {
   useCreateProduct,
   useUpdateProduct,
-  useProducts,
+  useProduct,
 } from "../../hooks/useProducts";
 import AdminSidebar from "../../components/layout/AdminSidebar";
 import AdminAppBar from "../../components/layout/AdminAppBar";
@@ -49,8 +49,8 @@ const ProductForm = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { data: productsData } = useProducts(1, 1000);
-  const products = productsData?.data || [];
+  const { data: productData } = useProduct(id || null);
+  const product = productData?.data || null;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -90,20 +90,17 @@ const ProductForm = () => {
   };
 
   useEffect(() => {
-    if (id && products.length > 0) {
-      const product = products.find((p: any) => p._id === id);
-      if (product) {
-        setValue("name", product.name);
-        setValue("description", product.description);
-        setValue("price", product.price);
-        setValue("stock", product.stock);
-        setValue("category", product.category);
-        setValue("image", product.image);
-        setImagePreview(product.image);
-        setIsEditing(true);
-      }
+    if (id && product) {
+      setValue("name", product.name);
+      setValue("description", product.description);
+      setValue("price", product.price);
+      setValue("stock", product.stock);
+      setValue("category", product.category);
+      setValue("image", product.image);
+      setImagePreview(product.image);
+      setIsEditing(true);
     }
-  }, [id, products, setValue]);
+  }, [id, product, setValue]);
 
   const categories = [
     "Electronics",

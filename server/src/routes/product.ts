@@ -1,5 +1,4 @@
-import express from 'express';
-import { body, param } from 'express-validator';
+import express, { Request, Response } from 'express';
 import {
   getProducts,
   getProduct,
@@ -9,65 +8,80 @@ import {
   softDeleteProduct,
 } from '../controllers/product';
 import { protect, authorize } from '../middleware/auth';
-import { handleValidationErrors } from '../middleware/validation';
+import {
+  validateProductId,
+  validateCreateProduct,
+  validateUpdateProduct,
+  validateProductQuery,
+} from '../validators/product.validator';
 
 const router = express.Router();
 
-router
-  .route('/')
-  .get(getProducts)
-  .post(
-    protect,
-    authorize('admin'),
-    [
-      body('name').notEmpty().withMessage('Name is required').trim(),
-      body('description').notEmpty().withMessage('Description is required'),
-      body('price').isFloat({ min: 0 }).withMessage('Price must be a positive number'),
-      body('stock').isInt({ min: 0 }).withMessage('Stock must be a non-negative integer'),
-      body('category').notEmpty().withMessage('Category is required').trim(),
-      body('image').notEmpty().withMessage('Image is required'),
-    ],
-    handleValidationErrors,
-    createProduct as any
-  );
+/**
+ * @route   GET /api/products
+ * @desc    Get all products with pagination and filtering
+ * @access  Public
+ */
+router.get('/', validateProductQuery, getProducts);
 
-router
-  .route('/:id')
-  .get(
-    param('id').isMongoId().withMessage('Invalid product ID'),
-    handleValidationErrors,
-    getProduct
-  )
-  .put(
-    protect,
-    authorize('admin'),
-    [
-      param('id').isMongoId().withMessage('Invalid product ID'),
-      body('name').optional().notEmpty().withMessage('Name cannot be empty').trim(),
-      body('description').optional().notEmpty().withMessage('Description cannot be empty'),
-      body('price').optional().isFloat({ min: 0 }).withMessage('Price must be a positive number'),
-      body('stock').optional().isInt({ min: 0 }).withMessage('Stock must be a non-negative integer'),
-      body('category').optional().notEmpty().withMessage('Category cannot be empty').trim(),
-      body('image').optional().notEmpty().withMessage('Image cannot be empty'),
-    ],
-    handleValidationErrors,
-    updateProduct as any
-  )
-  .delete(
-    protect,
-    authorize('admin'),
-    param('id').isMongoId().withMessage('Invalid product ID'),
-    handleValidationErrors,
-    deleteProduct as any
-  );
+/**
+ * @route   POST /api/products
+ * @desc    Create a new product
+ * @access  Private/Admin
+ */
+router.post(
+  '/',
+  protect,
+  authorize('admin'),
+  validateCreateProduct,
+  createProduct
+);
 
+/**
+ * @route   GET /api/products/:id
+ * @desc    Get a single product by ID
+ * @access  Public
+ */
+router.get('/:id', validateProductId, getProduct);
+
+/**
+ * @route   PUT /api/products/:id
+ * @desc    Update a product
+ * @access  Private/Admin
+ */
+router.put(
+  '/:id',
+  protect,
+  authorize('admin'),
+  validateProductId,
+  validateUpdateProduct,
+  updateProduct
+);
+
+/**
+ * @route   DELETE /api/products/:id
+ * @desc    Delete a product (soft delete)
+ * @access  Private/Admin
+ */
+router.delete(
+  '/:id',
+  protect,
+  authorize('admin'),
+  validateProductId,
+  deleteProduct
+);
+
+/**
+ * @route   PATCH /api/products/:id/soft-delete
+ * @desc    Soft delete a product
+ * @access  Private/Admin
+ */
 router.patch(
   '/:id/soft-delete',
   protect,
   authorize('admin'),
-  param('id').isMongoId().withMessage('Invalid product ID'),
-  handleValidationErrors,
-  softDeleteProduct as any
+  validateProductId,
+  softDeleteProduct
 );
 
 export default router;

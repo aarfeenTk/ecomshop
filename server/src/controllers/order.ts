@@ -1,196 +1,116 @@
 import { Request, Response } from 'express';
-import Order from '../models/Order';
-import User from '../models/User';
-import Product from '../models/Product';
-import { ApiResponse, AuthRequest, Order as OrderType } from '../types';
+import { StatusCodes } from 'http-status-codes';
+import orderService from '../services/order.service';
+import { asyncHandler } from '../utils/asyncHandler';
+import { sendSuccessResponse, sendCreatedResponse, sendPaginatedResponse } from '../utils/response';
+import { AuthenticatedRequest } from '../middleware/auth';
+import { CreateOrderData, UpdateOrderStatusData } from '../services/order.service';
 
-interface CreateOrderBody {
-  fullName: string;
-  email: string;
-  phone: string;
-  address: string;
-  paymentMethod: 'Cash on Delivery' | 'Bank Transfer';
-  transactionReference?: string;
-}
+/**
+ * Create new order
+ * POST /api/orders
+ */
+export const createOrder = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.user!.id;
+  const orderData = req.body as CreateOrderData;
 
-interface UpdateOrderStatusBody {
-  status: 'Pending' | 'Approved' | 'Shipped' | 'Delivered';
-}
+  const order = await orderService.createOrder(userId, orderData);
 
-export const createOrder = async (req: AuthRequest, res: Response<ApiResponse>): Promise<void> => {
-  try {
-    const {
-      fullName,
-      email,
-      phone,
-      address,
-      paymentMethod,
-      transactionReference,
-    } = req.body as CreateOrderBody;
+  sendCreatedResponse(res, order, 'Order placed successfully');
+});
 
-    const user = await User.findById(req.user!.id).populate({
-      path: 'cart.product',
-      model: 'Product',
-      options: { includeDeleted: true }
-    });
+/**
+ * Get my orders
+ * GET /api/orders/my?page=1&limit=10
+ */
+export const getMyOrders = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.user!.id;
+  const page = parseInt(req.query.page as string, 10) || 1;
+  const limit = parseInt(req.query.limit as string, 10) || 10;
 
-    if (!user.cart || user.cart.length === 0) {
-      res.status(400).json({
-        success: false,
-        message: 'Cart is empty',
-      });
-      return;
-    }
+  const result = await orderService.getMyOrders(userId, page, limit);
 
-    const availableCartItems = user.cart.filter(
-      item => item.product && !item.product.isDeleted && item.product.active
-    );
+  sendPaginatedResponse(
+    res,
+    result.orders,
+    result.pagination.total,
+    result.pagination.page,
+    result.pagination.limit,
+    'Orders retrieved successfully'
+  );
+});
 
-    if (availableCartItems.length === 0) {
-      res.status(400).json({
-        success: false,
-        message: 'No available products in cart',
-      });
-      return;
-    }
+/**
+ * Get all orders (admin)
+ * GET /api/orders?page=1&limit=10&status=Pending
+ */
+export const getOrders = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const page = parseInt(req.query.page as string, 10) || 1;
+  const limit = parseInt(req.query.limit as string, 10) || 10;
+  const status = req.query.status as string | undefined;
 
-    let totalPrice = 0;
-    const orderItems = [];
+  const result = await orderService.getAllOrders(page, limit, status);
 
-    for (const item of availableCartItems) {
-      const product = item.product;
+  sendPaginatedResponse(
+    res,
+    result.orders,
+    result.pagination.total,
+    result.pagination.page,
+    result.pagination.limit,
+    'Orders retrieved successfully'
+  );
+});
 
-      if (product.stock < item.quantity) {
-        res.status(400).json({
-          success: false,
-          message: `Insufficient stock for ${product.name}`,
-        });
-        return;
-      }
+/**
+ * Get order by ID
+ * GET /api/orders/:id
+ */
+export const getOrder = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.user!.id;
+  const isAdmin = req.user!.isAdmin;
+  const orderId = req.params.id as string;
 
-      orderItems.push({
-        product: product._id,
-        quantity: item.quantity,
-        price: product.price,
-      });
+  const order = await orderService.getOrderById(orderId, userId, isAdmin);
 
-      totalPrice += product.price * item.quantity;
+  sendSuccessResponse(
+    res,
+    order,
+    'Order retrieved successfully',
+    StatusCodes.OK
+  );
+});
 
-      product.stock -= item.quantity;
-      await product.save();
-    }
+/**
+ * Update order status (admin)
+ * PUT /api/orders/:id/status
+ */
+export const updateOrderStatus = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const { status } = req.body as UpdateOrderStatusData;
 
-    const order = await Order.create({
-      user: req.user!.id,
-      orderItems,
-      totalPrice,
-      shippingDetails: {
-        fullName,
-        email,
-        phone,
-        address,
-      },
-      paymentMethod,
-      transactionReference: paymentMethod === 'Bank Transfer' ? transactionReference : undefined,
-    });
+  const order = await orderService.updateOrderStatus(req.params.id as string, status);
 
-    user.cart = user.cart.filter(
-      item => item.product && (item.product.isDeleted || !item.product.active)
-    );
-    await user.save();
+  sendSuccessResponse(
+    res,
+    order,
+    'Order status updated successfully',
+    StatusCodes.OK
+  );
+});
 
-    res.status(201).json({
-      success: true,
-      data: order,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: (error as Error).message,
-    });
-  }
-};
+/**
+ * Cancel order
+ * POST /api/orders/:id/cancel
+ */
+export const cancelOrder = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.user!.id;
+  const orderId = req.params.id as string;
 
-export const getMyOrders = async (req: AuthRequest, res: Response<ApiResponse>): Promise<void> => {
-  try {
-    const page = parseInt(req.query.page as string, 10) || 1;
-    const limit = parseInt(req.query.limit as string, 10) || 10;
-    const skip = (page - 1) * limit;
+  const order = await orderService.cancelOrder(orderId, userId);
 
-    const total = await Order.countDocuments({ user: req.user!.id });
-
-    const orders = await Order.find({ user: req.user!.id })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate('user', 'name email')
-      .populate('orderItems.product', 'name image price');
-
-    res.status(200).json({
-      success: true,
-      count: orders.length,
-      total,
-      page,
-      pages: Math.ceil(total / limit),
-      data: orders,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: (error as Error).message,
-    });
-  }
-};
-
-export const getOrders = async (req: AuthRequest, res: Response<ApiResponse>): Promise<void> => {
-  try {
-    const orders = await Order.find()
-      .sort({ createdAt: -1 })
-      .populate('user', 'name email')
-      .populate('orderItems.product', 'name image price');
-
-    res.status(200).json({
-      success: true,
-      data: orders,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: (error as Error).message,
-    });
-  }
-};
-
-export const updateOrderStatus = async (req: AuthRequest, res: Response<ApiResponse>): Promise<void> => {
-  try {
-    const { status } = req.body as UpdateOrderStatusBody;
-
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true, runValidators: true }
-    );
-
-    if (!order) {
-      res.status(404).json({
-        success: false,
-        message: 'Order not found',
-      });
-      return;
-    }
-
-    res.status(200).json({
-      success: true,
-      data: order,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: (error as Error).message,
-    });
-  }
-};
+  sendSuccessResponse(
+    res,
+    order,
+    'Order cancelled successfully',
+    StatusCodes.OK
+  );
+});

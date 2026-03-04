@@ -1,217 +1,112 @@
 import { Request, Response } from 'express';
-import Product from '../models/Product';
-import Order from '../models/Order';
-import { ApiResponse, Product as ProductType } from '../types';
+import { StatusCodes } from 'http-status-codes';
+import productService, { ProductWithOrderInfo, CreateProductData, UpdateProductData } from '../services/product.service';
+import { asyncHandler } from '../utils/asyncHandler';
+import { sendSuccessResponse, sendPaginatedResponse, sendCreatedResponse } from '../utils/response';
 
-interface ProductQuery {
-  page?: string;
-  limit?: string;
-}
+/**
+ * Get all products with pagination
+ * GET /api/products?page=1&limit=12&category=electronics&search=laptop
+ */
+export const getProducts = asyncHandler(async (req: Request, res: Response) => {
+  const query = req.query as any;
+  
+  const page = query.page ? parseInt(query.page as string, 10) : 1;
+  const limit = query.limit ? parseInt(query.limit as string, 10) : 12;
+  const category = query.category as string;
+  const search = query.search as string;
+  const minPrice = query.minPrice ? parseFloat(query.minPrice as string) : undefined;
+  const maxPrice = query.maxPrice ? parseFloat(query.maxPrice as string) : undefined;
+  const sortBy = query.sortBy as string;
+  const sortOrder = (query.sortOrder as 'asc' | 'desc') || 'desc';
 
-interface ProductBody extends Partial<ProductType> {
-  name: string;
-  description: string;
-  price: number;
-  stock: number;
-  category: string;
-  image: string;
-}
+  const result = await productService.getProducts({
+    page,
+    limit,
+    category,
+    search,
+    minPrice,
+    maxPrice,
+    sortBy,
+    sortOrder,
+  });
 
-export const getProducts = async (req: Request<{}, {}, {}, ProductQuery>, res: Response<ApiResponse>): Promise<void> => {
-  try {
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 12;
-    const skip = (page - 1) * limit;
+  sendPaginatedResponse(
+    res,
+    result.products,
+    result.pagination.total,
+    result.pagination.page,
+    result.pagination.limit,
+    'Products retrieved successfully'
+  );
+});
 
-    const total = await Product.countDocuments({ isDeleted: false });
+/**
+ * Get single product by ID
+ * GET /api/products/:id
+ */
+export const getProduct = asyncHandler(async (req: Request<{ id: string }>, res: Response) => {
+  const product = await productService.getProductById(req.params.id);
 
-    const products = await Product.find({ isDeleted: false })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+  sendSuccessResponse(
+    res,
+    product,
+    'Product retrieved successfully',
+    StatusCodes.OK
+  );
+});
 
-    const productsWithOrderInfo = await Promise.all(
-      products.map(async (product) => {
-        const activeOrdersCount = await Order.countDocuments({
-          'orderItems.product': product._id,
-          status: { $in: ['Pending', 'Approved', 'Shipped'] }
-        });
+/**
+ * Create new product
+ * POST /api/products
+ */
+export const createProduct = asyncHandler(async (req: Request<{}, {}, CreateProductData>, res: Response) => {
+  const product = await productService.createProduct(req.body);
 
-        return {
-          ...product.toObject(),
-          hasActiveOrders: activeOrdersCount > 0,
-          activeOrdersCount
-        };
-      })
-    );
+  sendCreatedResponse(res, product, 'Product created successfully');
+});
 
-    res.status(200).json({
-      success: true,
-      count: productsWithOrderInfo.length,
-      total,
-      page,
-      pages: Math.ceil(total / limit),
-      data: productsWithOrderInfo,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: (error as Error).message,
-    });
-  }
-};
+/**
+ * Update product
+ * PUT /api/products/:id
+ */
+export const updateProduct = asyncHandler(async (req: Request<{ id: string }, {}, UpdateProductData>, res: Response) => {
+  const product = await productService.updateProduct(req.params.id, req.body);
 
-export const getProduct = async (req: Request<{ id: string }>, res: Response<ApiResponse>): Promise<void> => {
-  try {
-    const product = await Product.findById(req.params.id);
+  sendSuccessResponse(
+    res,
+    product,
+    'Product updated successfully',
+    StatusCodes.OK
+  );
+});
 
-    if (!product || product.isDeleted) {
-      res.status(404).json({
-        success: false,
-        message: 'Product not found',
-      });
-      return;
-    }
+/**
+ * Delete product (soft delete)
+ * DELETE /api/products/:id
+ */
+export const deleteProduct = asyncHandler(async (req: Request<{ id: string }>, res: Response) => {
+  const product = await productService.deleteProduct(req.params.id);
 
-    res.status(200).json({
-      success: true,
-      data: product,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: (error as Error).message,
-    });
-  }
-};
+  sendSuccessResponse(
+    res,
+    product,
+    'Product marked as unavailable (soft deleted)',
+    StatusCodes.OK
+  );
+});
 
-export const createProduct = async (req: Request<{}, {}, ProductBody>, res: Response<ApiResponse>): Promise<void> => {
-  try {
-    const product = await Product.create(req.body);
+/**
+ * Soft delete product
+ * PATCH /api/products/:id/soft-delete
+ */
+export const softDeleteProduct = asyncHandler(async (req: Request<{ id: string }>, res: Response) => {
+  const product = await productService.softDeleteProduct(req.params.id);
 
-    res.status(201).json({
-      success: true,
-      data: product,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: (error as Error).message,
-    });
-  }
-};
-
-export const updateProduct = async (req: Request<{ id: string }, {}, ProductBody>, res: Response<ApiResponse>): Promise<void> => {
-  try {
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
-
-    if (!product) {
-      res.status(404).json({
-        success: false,
-        message: 'Product not found',
-      });
-      return;
-    }
-
-    res.status(200).json({
-      success: true,
-      data: product,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: (error as Error).message,
-    });
-  }
-};
-
-export const deleteProduct = async (req: Request<{ id: string }>, res: Response<ApiResponse>): Promise<void> => {
-  try {
-    const product = await Product.findById(req.params.id);
-
-    if (!product) {
-      res.status(404).json({
-        success: false,
-        message: 'Product not found',
-      });
-      return;
-    }
-
-    const activeOrders = await Order.find({
-      'orderItems.product': req.params.id,
-      status: { $in: ['Pending', 'Approved', 'Shipped'] }
-    });
-
-    if (activeOrders.length > 0) {
-      res.status(400).json({
-        success: false,
-        message: `Cannot delete product with active orders`,
-        activeOrdersCount: activeOrders.length,
-        canSoftDelete: true,
-        suggestion: 'Mark product as unavailable instead'
-      });
-      return;
-    }
-
-    product.isDeleted = true;
-    product.deletedAt = new Date();
-    product.active = false;
-    product.stock = 0;
-    await product.save();
-
-    res.status(200).json({
-      success: true,
-      message: 'Product marked as unavailable (soft deleted)',
-      data: product,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: (error as Error).message,
-    });
-  }
-};
-
-export const softDeleteProduct = async (req: Request<{ id: string }>, res: Response<ApiResponse>): Promise<void> => {
-  try {
-    const product = await Product.findById(req.params.id);
-
-    if (!product) {
-      res.status(404).json({
-        success: false,
-        message: 'Product not found',
-      });
-      return;
-    }
-
-    product.isDeleted = true;
-    product.deletedAt = new Date();
-    product.active = false;
-    product.stock = 0;
-    await product.save();
-
-    res.status(200).json({
-      success: true,
-      message: 'Product marked as unavailable',
-      data: product,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: (error as Error).message,
-    });
-  }
-};
+  sendSuccessResponse(
+    res,
+    product,
+    'Product marked as unavailable',
+    StatusCodes.OK
+  );
+});

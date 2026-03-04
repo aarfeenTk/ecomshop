@@ -44,7 +44,19 @@ const ProductDetail: React.FC = () => {
 
   const handleAddToCart = () => {
     if (product && product.stock > 0) {
-      if (!user) {
+      // Debug: log auth state
+      console.log('Auth state:', { 
+        user, 
+        hasStoredUser: !!localStorage.getItem('user'), 
+        hasAccessToken: !!localStorage.getItem('accessToken') 
+      });
+      
+      // Check for user in Redux state or localStorage (for page refresh scenarios)
+      const storedUser = localStorage.getItem('user');
+      const accessToken = localStorage.getItem('accessToken');
+      
+      if (!user && (!storedUser || !accessToken)) {
+        console.log('User not authenticated, redirecting to login');
         // User not authenticated, redirect to login
         navigate("/login");
         return;

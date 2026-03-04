@@ -67,7 +67,7 @@ interface DeleteLoadingState {
 const AdminProductsList: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const { data: productsData, isLoading: loading } = useProducts(1, 1000);
+  const { data: productsData, isLoading: loading } = useProducts(1, 100);
   const products: Product[] = productsData?.data || [];
   const deleteProductMutation = useDeleteProduct();
   const [searchTerm, setSearchTerm] = useState<string>("");

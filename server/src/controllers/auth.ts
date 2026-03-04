@@ -1,288 +1,122 @@
 import { Request, Response } from 'express';
-import crypto from 'crypto';
-import User from '../models/User';
-import { ApiResponse, UserDocument } from '../types';
-import { generateAccessToken, hashRefreshToken } from '../utils/token';
-
-interface RegisterBody {
-  name: string;
-  email: string;
-  password: string;
-}
-
-interface LoginBody {
-  email: string;
-  password: string;
-}
-
-interface RefreshTokenBody {
-  refreshToken: string;
-}
+import { StatusCodes } from 'http-status-codes';
+import authService from '../services/auth.service';
+import { asyncHandler } from '../utils/asyncHandler';
+import { sendSuccessResponse } from '../utils/response';
+import { AuthenticatedRequest } from '../middleware/auth';
 
 /**
- * Send token response with both access and refresh tokens
+ * Register a new user
+ * POST /api/auth/register
  */
-const sendTokenResponse = (user: UserDocument, res: Response<ApiResponse>, statusCode: number = 200): void => {
-  const accessToken = generateAccessToken(user._id.toString());
-  const refreshTokenData = user.generateRefreshToken();
-  
-  // Save the user with refresh token
-  user.save().catch(err => {
-    console.error('Failed to save refresh token:', err);
-  });
+export const register = asyncHandler(async (req: Request, res: Response) => {
+  const { name, email, password } = req.body;
 
-  res.status(statusCode).json({
-    success: true,
-    accessToken,
-    refreshToken: refreshTokenData,
-    data: {
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-    },
-  });
-};
+  const result = await authService.register({ name, email, password });
 
-export const register = async (req: Request<{}, {}, RegisterBody>, res: Response<ApiResponse>): Promise<void> => {
-  try {
-    const { name, email, password } = req.body;
+  // Include tokens directly in the response data
+  const responseData = {
+    user: result.user,
+    accessToken: result.tokens.accessToken,
+    refreshToken: result.tokens.refreshToken,
+  };
 
-    const userExists = await User.findOne({ email });
-
-    if (userExists) {
-      res.status(400).json({
-        success: false,
-        message: 'User already exists',
-      });
-      return;
-    }
-
-    const user = await User.create({
-      name,
-      email,
-      password,
-    });
-
-    sendTokenResponse(user as UserDocument, res, 201);
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: (error as Error).message,
-    });
-  }
-};
-
-export const login = async (req: Request<{}, {}, LoginBody>, res: Response<ApiResponse>): Promise<void> => {
-  try {
-    const { email, password } = req.body;
-
-    const user = await User.findOne({ email }).select('+password');
-
-    if (!user) {
-      res.status(401).json({
-        success: false,
-        message: 'Invalid credentials',
-      });
-      return;
-    }
-
-    const isMatch = await (user as UserDocument).matchPassword(password);
-
-    if (!isMatch) {
-      res.status(401).json({
-        success: false,
-        message: 'Invalid credentials',
-      });
-      return;
-    }
-
-    sendTokenResponse(user as UserDocument, res);
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: (error as Error).message,
-    });
-  }
-};
+  sendSuccessResponse(
+    res,
+    responseData,
+    'User registered successfully',
+    StatusCodes.CREATED
+  );
+});
 
 /**
- * Refresh access token using refresh token
+ * Login user
+ * POST /api/auth/login
  */
-export const refreshToken = async (req: Request<{}, {}, RefreshTokenBody>, res: Response<ApiResponse>): Promise<void> => {
-  try {
-    const { refreshToken } = req.body;
+export const login = asyncHandler(async (req: Request, res: Response) => {
+  const { email, password } = req.body;
 
-    if (!refreshToken) {
-      res.status(400).json({
-        success: false,
-        message: 'Refresh token is required',
-      });
-      return;
-    }
+  const result = await authService.login({ email, password });
 
-    // Hash the provided refresh token for comparison
-    const refreshTokenHash = hashRefreshToken(refreshToken);
+  // Include tokens directly in the response data
+  const responseData = {
+    user: result.user,
+    accessToken: result.tokens.accessToken,
+    refreshToken: result.tokens.refreshToken,
+  };
 
-    // Find user with matching refresh token
-    const user = await User.findOne({
-      refreshToken: refreshTokenHash,
-    }).select('+refreshToken +refreshTokenExpires');
-
-    if (!user) {
-      res.status(401).json({
-        success: false,
-        message: 'Invalid refresh token',
-      });
-      return;
-    }
-
-    // Check if refresh token has expired
-    if (!user.isRefreshTokenValid()) {
-      await user.clearRefreshToken();
-      res.status(401).json({
-        success: false,
-        message: 'Refresh token has expired. Please login again.',
-      });
-      return;
-    }
-
-    // Generate new access token and rotate refresh token
-    const accessToken = generateAccessToken(user._id.toString());
-    const newRefreshToken = user.generateRefreshToken();
-    
-    await user.save();
-
-    res.status(200).json({
-      success: true,
-      accessToken,
-      refreshToken: newRefreshToken,
-      message: 'Token refreshed successfully',
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: (error as Error).message,
-    });
-  }
-};
+  sendSuccessResponse(
+    res,
+    responseData,
+    'Login successful',
+    StatusCodes.OK
+  );
+});
 
 /**
- * Logout - invalidate current refresh token
+ * Refresh access token
+ * POST /api/auth/refresh
  */
-export const logout = async (req: Request, res: Response<ApiResponse>): Promise<void> => {
-  try {
-    const { refreshToken } = req.body;
+export const refreshToken = asyncHandler(async (req: Request, res: Response) => {
+  const { refreshToken } = req.body;
 
-    if (!refreshToken) {
-      res.status(400).json({
-        success: false,
-        message: 'Refresh token is required',
-      });
-      return;
-    }
+  const tokens = await authService.refreshToken(refreshToken);
 
-    const refreshTokenHash = hashRefreshToken(refreshToken);
-    const user = await User.findOne({ refreshToken: refreshTokenHash });
-
-    if (user) {
-      await user.clearRefreshToken();
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Logged out successfully',
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: (error as Error).message,
-    });
-  }
-};
+  sendSuccessResponse(
+    res,
+    tokens,
+    'Token refreshed successfully',
+    StatusCodes.OK
+  );
+});
 
 /**
- * Logout from all devices - invalidate all refresh tokens
+ * Logout user
+ * POST /api/auth/logout
  */
-export const logoutAll = async (req: Request, res: Response<ApiResponse>): Promise<void> => {
-  try {
-    // Get user ID from authenticated request
-    const userId = (req as any).user?.id;
+export const logout = asyncHandler(async (req: Request, res: Response) => {
+  const { refreshToken } = req.body;
 
-    if (!userId) {
-      res.status(401).json({
-        success: false,
-        message: 'Not authenticated',
-      });
-      return;
-    }
+  await authService.logout(refreshToken);
 
-    const user = await User.findById(userId);
+  sendSuccessResponse(
+    res,
+    null,
+    'Logged out successfully',
+    StatusCodes.OK
+  );
+});
 
-    if (user) {
-      await user.clearRefreshToken();
-    }
+/**
+ * Logout from all devices
+ * POST /api/auth/logout-all
+ */
+export const logoutAll = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.user!.id;
 
-    res.status(200).json({
-      success: true,
-      message: 'Logged out from all devices successfully',
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: (error as Error).message,
-    });
-  }
-};
+  await authService.logoutAll(userId);
+
+  sendSuccessResponse(
+    res,
+    null,
+    'Logged out from all devices successfully',
+    StatusCodes.OK
+  );
+});
 
 /**
  * Get current user profile
+ * GET /api/auth/me
  */
-export const getMe = async (req: Request, res: Response<ApiResponse>): Promise<void> => {
-  try {
-    const userId = (req as any).user?.id;
+export const getMe = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.user!.id;
 
-    if (!userId) {
-      res.status(401).json({
-        success: false,
-        message: 'Not authenticated',
-      });
-      return;
-    }
+  const user = await authService.getCurrentUser(userId);
 
-    const user = await User.findById(userId);
-
-    if (!user) {
-      res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
-      return;
-    }
-
-    res.status(200).json({
-      success: true,
-      data: {
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        },
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: (error as Error).message,
-    });
-  }
-};
+  sendSuccessResponse(
+    res,
+    { user },
+    'User profile retrieved successfully',
+    StatusCodes.OK
+  );
+});

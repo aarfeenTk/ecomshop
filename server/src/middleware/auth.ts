@@ -1,94 +1,60 @@
-import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import User from "../models/User";
-import { verifyAccessToken } from "../utils/token";
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import User from '../models/User';
+import { UnauthorizedError, ForbiddenError } from '../errors';
+import { verifyAccessToken } from '../utils/token';
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  isAdmin: boolean;
+}
 
 export interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    isAdmin: boolean;
-  };
+  user?: AuthUser;
 }
 
 /**
  * Middleware to protect routes that require authentication
  * Validates access token and attaches user to request
  */
-export const protect = async (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
-  let token: string | undefined;
-
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    token = req.headers.authorization.split(" ")[1];
-  }
-
-  if (!token) {
-    res.status(401).json({
-      success: false,
-      message: "Not authorized to access this route",
-    });
-    return;
-  }
-
+export const protect = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const decoded = verifyAccessToken(token);
+    let token: string | undefined;
 
-    // Verify token type if present
-    if (decoded.type && decoded.type !== "access") {
-      res.status(401).json({
-        success: false,
-        message: "Invalid token type",
-      });
-      return;
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
     }
 
+    if (!token) {
+      throw new UnauthorizedError('Access token is required');
+    }
+
+    // Verify token
+    const decoded = verifyAccessToken(token);
+    
+    // Verify token type
+    if (decoded.type && decoded.type !== 'access') {
+      throw new UnauthorizedError('Invalid token type');
+    }
+
+    // Find user
     const user = await User.findById(decoded.id);
 
     if (!user) {
-      res.status(401).json({
-        success: false,
-        message: "User not found",
-      });
-      return;
+      throw new UnauthorizedError('User not found');
     }
 
+    // Attach user to request
     req.user = {
       id: user._id.toString(),
       email: user.email,
-      isAdmin: user.role === "admin",
+      isAdmin: user.role === 'admin',
     };
 
     next();
-  } catch (err) {
-    if (err instanceof jwt.TokenExpiredError) {
-      res.status(401).json({
-        success: false,
-        message: "Access token has expired",
-        error: "TOKEN_EXPIRED",
-      });
-      return;
-    }
-
-    if (err instanceof jwt.JsonWebTokenError) {
-      res.status(401).json({
-        success: false,
-        message: "Invalid token",
-        error: "INVALID_TOKEN",
-      });
-      return;
-    }
-
-    res.status(401).json({
-      success: false,
-      message: "Not authorized to access this route",
-    });
+  } catch (error) {
+    next(error);
   }
 };
 
@@ -97,30 +63,22 @@ export const protect = async (
  * Must be used after protect middleware
  */
 export const authorize = (...roles: string[]) => {
-  return (
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction,
-  ): void => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: "Not authenticated",
-      });
-      return;
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+    try {
+      if (!req.user) {
+        throw new UnauthorizedError('Not authenticated');
+      }
+
+      const userRole = req.user.isAdmin ? 'admin' : 'user';
+      
+      if (!roles.includes(userRole)) {
+        throw new ForbiddenError(`User role '${userRole}' is not authorized to access this route`);
+      }
+      
+      next();
+    } catch (error) {
+      next(error);
     }
-
-    const userRole = req.user.isAdmin ? "admin" : "user";
-
-    if (!roles.includes(userRole)) {
-      res.status(403).json({
-        success: false,
-        message: `User role '${userRole}' is not authorized to access this route`,
-      });
-      return;
-    }
-
-    next();
   };
 };
 
@@ -128,22 +86,15 @@ export const authorize = (...roles: string[]) => {
  * Optional authentication - attaches user if token is valid, but doesn't block
  * Useful for routes that have different behavior for logged-in vs anonymous users
  */
-export const optionalAuth = async (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
-  let token: string | undefined;
+export const optionalAuth = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    let token: string | undefined;
 
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    token = req.headers.authorization.split(" ")[1];
-  }
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
 
-  if (token) {
-    try {
+    if (token) {
       const decoded = verifyAccessToken(token);
       const user = await User.findById(decoded.id);
 
@@ -151,13 +102,14 @@ export const optionalAuth = async (
         req.user = {
           id: user._id.toString(),
           email: user.email,
-          isAdmin: user.role === "admin",
+          isAdmin: user.role === 'admin',
         };
       }
-    } catch (err) {
-      // Token is invalid, but we continue without user
     }
-  }
 
-  next();
+    next();
+  } catch (error) {
+    // Token is invalid, but we continue without user
+    next();
+  }
 };

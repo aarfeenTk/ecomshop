@@ -13,10 +13,16 @@ export function useLogin() {
         "/api/auth/login",
         credentials,
       );
-      const { accessToken, refreshToken, data } = response.data;
+      console.log('Login response:', response.data);
+      // Tokens are in response.data.data (inside the success response wrapper)
+      const { accessToken, refreshToken, user } = response.data.data;
+      console.log('Tokens received:', { 
+        accessToken: accessToken ? 'present' : 'MISSING', 
+        refreshToken: refreshToken ? 'present' : 'MISSING' 
+      });
       setTokens(accessToken, refreshToken);
-      setUser(data.user);
-      return data.user;
+      setUser(user);
+      return user;
     },
   });
 }
@@ -32,10 +38,11 @@ export function useRegister() {
         "/api/auth/register",
         userData,
       );
-      const { accessToken, refreshToken, data } = response.data;
+      // Tokens are in response.data.data (inside the success response wrapper)
+      const { accessToken, refreshToken, user } = response.data.data;
       setTokens(accessToken, refreshToken);
-      setUser(data.user);
-      return data.user;
+      setUser(user);
+      return user;
     },
   });
 }

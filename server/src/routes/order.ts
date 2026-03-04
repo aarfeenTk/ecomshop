@@ -1,45 +1,68 @@
-import express from 'express';
-import { body, param } from 'express-validator';
+import express, { Request, Response } from 'express';
 import {
   createOrder,
   getMyOrders,
   getOrders,
+  getOrder,
   updateOrderStatus,
+  cancelOrder,
 } from '../controllers/order';
 import { protect, authorize } from '../middleware/auth';
-import { handleValidationErrors } from '../middleware/validation';
+import {
+  validateCreateOrder,
+  validateUpdateOrderStatus,
+  validateOrderId,
+  validateOrderQuery,
+} from '../validators/order.validator';
 
 const router = express.Router();
 
-router
-  .route('/')
-  .post(
-    protect,
-    [
-      body('fullName').notEmpty().withMessage('Full name is required').trim(),
-      body('email').isEmail().withMessage('Please provide a valid email').normalizeEmail(),
-      body('phone').notEmpty().withMessage('Phone number is required'),
-      body('address').notEmpty().withMessage('Address is required'),
-      body('paymentMethod').isIn(['Bank Transfer', 'Cash on Delivery']).withMessage('Invalid payment method'),
-      body('transactionReference').if(body('paymentMethod').equals('Bank Transfer')).notEmpty().withMessage('Transaction reference is required for bank transfer'),
-    ],
-    handleValidationErrors,
-    createOrder as any
-  )
-  .get(protect, authorize('admin'), getOrders as any);
+/**
+ * @route   POST /api/orders
+ * @desc    Create a new order
+ * @access  Private
+ */
+router.post('/', protect, validateCreateOrder, createOrder);
 
-router.get('/my', protect, getMyOrders as any);
+/**
+ * @route   GET /api/orders/my
+ * @desc    Get my orders with pagination
+ * @access  Private
+ */
+router.get('/my', protect, validateOrderQuery, getMyOrders);
 
+/**
+ * @route   GET /api/orders
+ * @desc    Get all orders (admin)
+ * @access  Private/Admin
+ */
+router.get('/', protect, authorize('admin'), validateOrderQuery, getOrders);
+
+/**
+ * @route   GET /api/orders/:id
+ * @desc    Get order by ID
+ * @access  Private (owner or admin)
+ */
+router.get('/:id', protect, validateOrderId, getOrder);
+
+/**
+ * @route   PUT /api/orders/:id/status
+ * @desc    Update order status (admin)
+ * @access  Private/Admin
+ */
 router.put(
   '/:id/status',
   protect,
   authorize('admin'),
-  [
-    param('id').isMongoId().withMessage('Invalid order ID'),
-    body('status').isIn(['Pending', 'Approved', 'Shipped', 'Delivered']).withMessage('Invalid status'),
-  ],
-  handleValidationErrors,
-  updateOrderStatus as any
+  validateUpdateOrderStatus,
+  updateOrderStatus
 );
+
+/**
+ * @route   POST /api/orders/:id/cancel
+ * @desc    Cancel order (pending orders only)
+ * @access  Private (owner only)
+ */
+router.post('/:id/cancel', protect, validateOrderId, cancelOrder);
 
 export default router;

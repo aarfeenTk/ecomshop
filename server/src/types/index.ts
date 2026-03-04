@@ -88,6 +88,7 @@ export interface ApiResponse<T = any> {
   accessToken?: string;
   refreshToken?: string;
   error?: string;
+  code?: string;
   count?: number;
   total?: number;
   page?: number;
@@ -96,4 +97,13 @@ export interface ApiResponse<T = any> {
   activeOrdersCount?: number;
   canSoftDelete?: boolean;
   suggestion?: string;
+  meta?: {
+    page?: number;
+    limit?: number;
+    total?: number;
+    pages?: number;
+    count?: number;
+  };
+  timestamp?: string;
+  path?: string;
 }
