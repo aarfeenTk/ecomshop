@@ -1,8 +1,9 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+import mongoose, { Schema, Document, Types } from 'mongoose';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { UserDocument } from '../types';
 
-const userSchema = new mongoose.Schema({
+const userSchema = new Schema<UserDocument>({
   name: {
     type: String,
     required: [true, 'Please add a name'],
@@ -23,52 +24,50 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please add a password'],
     minlength: 6,
-    select: false, // Don't include password in queries by default
+    select: false,
   },
   role: {
     type: String,
     enum: ['admin', 'user'],
     default: 'user',
   },
-  cart: [
-    {
-      product: {
-        type: mongoose.Schema.ObjectId,
-        ref: 'Product',
-      },
-      quantity: {
-        type: Number,
-        default: 1,
-        min: 1,
-      },
+  cart: [{
+    product: {
+      type: Schema.Types.ObjectId,
+      ref: 'Product',
     },
-  ],
+    quantity: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
+  }],
   createdAt: {
     type: Date,
     default: Date.now,
   },
 });
 
-// Encrypt password using bcrypt
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
-    next();
+    return next();
   }
 
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
-// Sign JWT and return
-userSchema.methods.getSignedJwtToken = function () {
-  return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '30d',
-  });
+userSchema.methods.getSignedJwtToken = function (): string {
+  return jwt.sign(
+    { id: this._id },
+    process.env.JWT_SECRET as string,
+    { expiresIn: process.env.JWT_EXPIRE || '30d' } as any
+  );
 };
 
-// Match user entered password to hashed password in database
-userSchema.methods.matchPassword = async function (enteredPassword) {
+userSchema.methods.matchPassword = async function (enteredPassword: string): Promise<boolean> {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-module.exports = mongoose.model('User', userSchema);
+export default mongoose.model<UserDocument>('User', userSchema);

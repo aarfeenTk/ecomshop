@@ -1,11 +1,23 @@
-const Order = require('../models/Order');
-const User = require('../models/User');
-const Product = require('../models/Product');
+import { Request, Response } from 'express';
+import Order from '../models/Order';
+import User from '../models/User';
+import Product from '../models/Product';
+import { ApiResponse, AuthRequest, Order as OrderType } from '../types';
 
-// @desc    Create new order
-// @route   POST /api/orders
-// @access  Private
-exports.createOrder = async (req, res) => {
+interface CreateOrderBody {
+  fullName: string;
+  email: string;
+  phone: string;
+  address: string;
+  paymentMethod: 'Cash on Delivery' | 'Bank Transfer';
+  transactionReference?: string;
+}
+
+interface UpdateOrderStatusBody {
+  status: 'Pending' | 'Approved' | 'Shipped' | 'Delivered';
+}
+
+export const createOrder = async (req: AuthRequest, res: Response<ApiResponse>): Promise<void> => {
   try {
     const {
       fullName,
@@ -14,35 +26,34 @@ exports.createOrder = async (req, res) => {
       address,
       paymentMethod,
       transactionReference,
-    } = req.body;
+    } = req.body as CreateOrderBody;
 
-    // Get user with cart (including soft-deleted products to handle them)
-    const user = await User.findById(req.user.id).populate({
+    const user = await User.findById(req.user!.id).populate({
       path: 'cart.product',
       model: 'Product',
       options: { includeDeleted: true }
     });
 
     if (!user.cart || user.cart.length === 0) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Cart is empty',
       });
+      return;
     }
 
-    // Filter out unavailable products (soft-deleted or inactive)
     const availableCartItems = user.cart.filter(
       item => item.product && !item.product.isDeleted && item.product.active
     );
 
     if (availableCartItems.length === 0) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'No available products in cart',
       });
+      return;
     }
 
-    // Check stock and calculate total
     let totalPrice = 0;
     const orderItems = [];
 
@@ -50,10 +61,11 @@ exports.createOrder = async (req, res) => {
       const product = item.product;
 
       if (product.stock < item.quantity) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: `Insufficient stock for ${product.name}`,
         });
+        return;
       }
 
       orderItems.push({
@@ -64,14 +76,12 @@ exports.createOrder = async (req, res) => {
 
       totalPrice += product.price * item.quantity;
 
-      // Reduce stock
       product.stock -= item.quantity;
       await product.save();
     }
 
-    // Create order
     const order = await Order.create({
-      user: req.user.id,
+      user: req.user!.id,
       orderItems,
       totalPrice,
       shippingDetails: {
@@ -84,7 +94,6 @@ exports.createOrder = async (req, res) => {
       transactionReference: paymentMethod === 'Bank Transfer' ? transactionReference : undefined,
     });
 
-    // Remove only the available items from cart (keep unavailable items so user can remove them)
     user.cart = user.cart.filter(
       item => item.product && (item.product.isDeleted || !item.product.active)
     );
@@ -98,28 +107,25 @@ exports.createOrder = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: (error as Error).message,
     });
   }
 };
 
-// @desc    Get user orders
-// @route   GET /api/orders/my
-// @access  Private
-exports.getMyOrders = async (req, res) => {
+export const getMyOrders = async (req: AuthRequest, res: Response<ApiResponse>): Promise<void> => {
   try {
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = parseInt(req.query.limit as string, 10) || 10;
     const skip = (page - 1) * limit;
 
-    // Get total count for pagination
-    const total = await Order.countDocuments({ user: req.user.id });
+    const total = await Order.countDocuments({ user: req.user!.id });
 
-    const orders = await Order.find({ user: req.user.id })
-      .populate('orderItems.product', 'name image')
+    const orders = await Order.find({ user: req.user!.id })
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .populate('user', 'name email')
+      .populate('orderItems.product', 'name image price');
 
     res.status(200).json({
       success: true,
@@ -133,19 +139,17 @@ exports.getMyOrders = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: (error as Error).message,
     });
   }
 };
 
-// @desc    Get all orders
-// @route   GET /api/orders
-// @access  Private/Admin
-exports.getOrders = async (req, res) => {
+export const getOrders = async (req: AuthRequest, res: Response<ApiResponse>): Promise<void> => {
   try {
     const orders = await Order.find()
+      .sort({ createdAt: -1 })
       .populate('user', 'name email')
-      .populate('orderItems.product', 'name image');
+      .populate('orderItems.product', 'name image price');
 
     res.status(200).json({
       success: true,
@@ -155,29 +159,28 @@ exports.getOrders = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: (error as Error).message,
     });
   }
 };
 
-// @desc    Update order status
-// @route   PUT /api/orders/:id/status
-// @access  Private/Admin
-exports.updateOrderStatus = async (req, res) => {
+export const updateOrderStatus = async (req: AuthRequest, res: Response<ApiResponse>): Promise<void> => {
   try {
-    const { status } = req.body;
+    const { status } = req.body as UpdateOrderStatusBody;
 
-    const order = await Order.findById(req.params.id);
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true, runValidators: true }
+    );
 
     if (!order) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Order not found',
       });
+      return;
     }
-
-    order.status = status;
-    await order.save();
 
     res.status(200).json({
       success: true,
@@ -187,7 +190,7 @@ exports.updateOrderStatus = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: (error as Error).message,
     });
   }
 };

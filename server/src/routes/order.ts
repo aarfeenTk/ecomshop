@@ -1,13 +1,13 @@
-const express = require('express');
-const { body, param } = require('express-validator');
-const {
+import express from 'express';
+import { body, param } from 'express-validator';
+import {
   createOrder,
   getMyOrders,
   getOrders,
   updateOrderStatus,
-} = require('../controllers/order');
-const { protect, authorize } = require('../middleware/auth');
-const { handleValidationErrors } = require('../middleware/validation');
+} from '../controllers/order';
+import { protect, authorize } from '../middleware/auth';
+import { handleValidationErrors } from '../middleware/validation';
 
 const router = express.Router();
 
@@ -24,11 +24,11 @@ router
       body('transactionReference').if(body('paymentMethod').equals('Bank Transfer')).notEmpty().withMessage('Transaction reference is required for bank transfer'),
     ],
     handleValidationErrors,
-    createOrder
+    createOrder as any
   )
-  .get(protect, authorize('admin'), getOrders);
+  .get(protect, authorize('admin'), getOrders as any);
 
-router.get('/my', protect, getMyOrders);
+router.get('/my', protect, getMyOrders as any);
 
 router.put(
   '/:id/status',
@@ -39,7 +39,7 @@ router.put(
     body('status').isIn(['Pending', 'Approved', 'Shipped', 'Delivered']).withMessage('Invalid status'),
   ],
   handleValidationErrors,
-  updateOrderStatus
+  updateOrderStatus as any
 );
 
-module.exports = router;
+export default router;

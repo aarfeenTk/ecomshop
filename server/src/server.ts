@@ -1,18 +1,20 @@
-require('dotenv').config();
-const express = require('express');
-const connectDB = require('./config/database');
-const cors = require('cors');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
+import dotenv from 'dotenv';
+dotenv.config();
+
+import express, { Request, Response } from 'express';
+import connectDB from './config/database';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 
 // Import routes
-const authRoutes = require('./routes/auth');
-const productRoutes = require('./routes/product');
-const cartRoutes = require('./routes/cart');
-const orderRoutes = require('./routes/order');
+import authRoutes from './routes/auth';
+import productRoutes from './routes/product';
+import cartRoutes from './routes/cart';
+import orderRoutes from './routes/order';
 
 // Import error handler
-const errorHandler = require('./middleware/error');
+import errorHandler from './middleware/error';
 
 // Connect to database
 connectDB();
@@ -42,7 +44,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use('*', (req: Request, res: Response) => {
   res.status(404).json({ success: false, message: 'Route not found' });
 });
 
@@ -56,12 +58,11 @@ const server = app.listen(PORT, () => {
 });
 
 // Handle unhandled promise rejections
-process.on('unhandledRejection', (err, promise) => {
+process.on('unhandledRejection', (err: Error) => {
   console.log(`Error: ${err.message}`);
-  // Close server & exit process
   server.close(() => {
     process.exit(1);
   });
 });
 
-module.exports = app;
+export default app;

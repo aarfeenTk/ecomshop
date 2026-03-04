@@ -1,81 +1,97 @@
-const User = require('../models/User');
-const Product = require('../models/Product');
+import { Request, Response } from 'express';
+import User from '../models/User';
+import Product from '../models/Product';
+import { ApiResponse, UserDocument } from '../types';
 
-// @desc    Get user cart
-// @route   GET /api/cart
-// @access  Private
-exports.getCart = async (req, res) => {
+interface CartItemBody {
+  productId: string;
+  quantity?: number;
+}
+
+interface UpdateCartItemBody {
+  quantity: number;
+}
+
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    isAdmin: boolean;
+  };
+}
+
+export const getCart = async (req: AuthenticatedRequest, res: Response<ApiResponse>): Promise<void> => {
   try {
-    const user = await User.findById(req.user.id);
-    
-    // Populate cart products including soft-deleted ones (for showing unavailable items)
-    await user.populate({
+    const user = await User.findById(req.user!.id).populate({
       path: 'cart.product',
       model: 'Product',
       options: { includeDeleted: true }
-    });
+    }) as UserDocument | null;
 
     res.status(200).json({
       success: true,
-      data: user.cart,
+      data: user?.cart || [],
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: (error as Error).message,
     });
   }
 };
 
-// @desc    Add item to cart
-// @route   POST /api/cart
-// @access  Private
-exports.addToCart = async (req, res) => {
+export const addToCart = async (req: AuthenticatedRequest, res: Response<ApiResponse>): Promise<void> => {
   try {
-    const { productId, quantity = 1 } = req.body;
+    const { productId, quantity = 1 } = req.body as CartItemBody;
 
-    // Check if product exists and has stock
     const product = await Product.findById(productId);
     if (!product) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Product not found',
       });
+      return;
     }
 
     if (product.stock < quantity) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Insufficient stock',
       });
+      return;
     }
 
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user!.id) as UserDocument | null;
 
-    // Check if product already in cart
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+      return;
+    }
+
     const existingItem = user.cart.find(
-      (item) => item.product.toString() === productId
+      (item: any) => item.product.toString() === productId
     );
 
     if (existingItem) {
-      // Update quantity
       const newQuantity = existingItem.quantity + quantity;
       if (newQuantity > product.stock) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'Insufficient stock',
         });
+        return;
       }
       existingItem.quantity = newQuantity;
     } else {
-      // Add new item
       user.cart.push({ product: productId, quantity });
     }
 
     await user.save();
 
-    // Populate cart for response (include deleted products)
     await user.populate({
       path: 'cart.product',
       model: 'Product',
@@ -90,54 +106,59 @@ exports.addToCart = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: (error as Error).message,
     });
   }
 };
 
-// @desc    Update cart item quantity
-// @route   PUT /api/cart/:productId
-// @access  Private
-exports.updateCartItem = async (req, res) => {
+export const updateCartItem = async (req: AuthenticatedRequest, res: Response<ApiResponse>): Promise<void> => {
   try {
-    const { quantity } = req.body;
+    const { quantity } = req.body as UpdateCartItemBody;
     const productId = req.params.productId;
 
-    // Check if product exists and has stock
     const product = await Product.findById(productId);
     if (!product) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Product not found',
       });
+      return;
     }
 
     if (product.stock < quantity) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Insufficient stock',
       });
+      return;
     }
 
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user!.id) as UserDocument | null;
 
-    // Find item in cart
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+      return;
+    }
+
     const itemIndex = user.cart.findIndex(
-      (item) => item.product.toString() === productId
+      (item: any) => item.product.toString() === productId
     );
 
     if (itemIndex === -1) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Item not found in cart',
       });
+      return;
     }
 
     user.cart[itemIndex].quantity = quantity;
 
     await user.save();
 
-    // Populate cart for response (include deleted products)
     await user.populate({
       path: 'cart.product',
       model: 'Product',
@@ -152,28 +173,31 @@ exports.updateCartItem = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: (error as Error).message,
     });
   }
 };
 
-// @desc    Remove item from cart
-// @route   DELETE /api/cart/:productId
-// @access  Private
-exports.removeFromCart = async (req, res) => {
+export const removeFromCart = async (req: AuthenticatedRequest, res: Response<ApiResponse>): Promise<void> => {
   try {
     const productId = req.params.productId;
 
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user!.id) as UserDocument | null;
 
-    // Filter out the item
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+      return;
+    }
+
     user.cart = user.cart.filter(
-      (item) => item.product.toString() !== productId
+      (item: any) => item.product.toString() !== productId
     );
 
     await user.save();
 
-    // Populate cart for response (include deleted products)
     await user.populate({
       path: 'cart.product',
       model: 'Product',
@@ -188,7 +212,7 @@ exports.removeFromCart = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: (error as Error).message,
     });
   }
 };

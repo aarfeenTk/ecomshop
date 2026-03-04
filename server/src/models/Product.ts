@@ -1,6 +1,7 @@
-const mongoose = require('mongoose');
+import mongoose, { Schema } from 'mongoose';
+import { ProductDocument } from '../types';
 
-const productSchema = new mongoose.Schema({
+const productSchema = new Schema<ProductDocument>({
   name: {
     type: String,
     required: [true, 'Please add a product name'],
@@ -30,7 +31,6 @@ const productSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please add a product image'],
   },
-  // Soft delete fields
   isDeleted: {
     type: Boolean,
     default: false,
@@ -48,19 +48,15 @@ const productSchema = new mongoose.Schema({
   },
 });
 
-// Index for faster queries on active products
 productSchema.index({ active: 1, isDeleted: 1 });
 
-// Pre-find middleware to filter out deleted products by default
-productSchema.pre(/^find/, function(next) {
-  // Check if we should bypass the soft-delete filter (e.g., for cart population)
-  const options = this.options || {};
+productSchema.pre(/^find/, function(this: any, next) {
+  const options = this.getOptions() || {};
   if (options.includeDeleted) {
     return next();
   }
-  // Only filter in regular find operations, not in admin queries
   this.where({ isDeleted: false, active: true });
   next();
 });
 
-module.exports = mongoose.model('Product', productSchema);
+export default mongoose.model<ProductDocument>('Product', productSchema);

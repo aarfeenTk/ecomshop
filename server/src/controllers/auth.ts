@@ -1,31 +1,39 @@
-const User = require('../models/User');
+import { Request, Response } from 'express';
+import User from '../models/User';
+import { ApiResponse, UserDocument } from '../types';
 
-// @desc    Register user
-// @route   POST /api/auth/register
-// @access  Public
-exports.register = async (req, res) => {
+interface RegisterBody {
+  name: string;
+  email: string;
+  password: string;
+}
+
+interface LoginBody {
+  email: string;
+  password: string;
+}
+
+export const register = async (req: Request<{}, {}, RegisterBody>, res: Response<ApiResponse>): Promise<void> => {
   try {
     const { name, email, password } = req.body;
 
-    // Check if user exists
     const userExists = await User.findOne({ email });
 
     if (userExists) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'User already exists',
       });
+      return;
     }
 
-    // Create user
     const user = await User.create({
       name,
       email,
       password,
     });
 
-    // Create token
-    const token = user.getSignedJwtToken();
+    const token = (user as UserDocument).getSignedJwtToken();
 
     res.status(201).json({
       success: true,
@@ -43,40 +51,36 @@ exports.register = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: (error as Error).message,
     });
   }
 };
 
-// @desc    Login user
-// @route   POST /api/auth/login
-// @access  Public
-exports.login = async (req, res) => {
+export const login = async (req: Request<{}, {}, LoginBody>, res: Response<ApiResponse>): Promise<void> => {
   try {
     const { email, password } = req.body;
 
-    // Check for user
     const user = await User.findOne({ email }).select('+password');
 
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Invalid credentials',
       });
+      return;
     }
 
-    // Check if password matches
-    const isMatch = await user.matchPassword(password);
+    const isMatch = await (user as UserDocument).matchPassword(password);
 
     if (!isMatch) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Invalid credentials',
       });
+      return;
     }
 
-    // Create token
-    const token = user.getSignedJwtToken();
+    const token = (user as UserDocument).getSignedJwtToken();
 
     res.status(200).json({
       success: true,
@@ -94,7 +98,7 @@ exports.login = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: (error as Error).message,
     });
   }
 };

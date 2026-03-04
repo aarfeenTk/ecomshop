@@ -1,25 +1,35 @@
-const Product = require('../models/Product');
-const Order = require('../models/Order');
+import { Request, Response } from 'express';
+import Product from '../models/Product';
+import Order from '../models/Order';
+import { ApiResponse, Product as ProductType } from '../types';
 
-// @desc    Get all products
-// @route   GET /api/products
-// @access  Public
-exports.getProducts = async (req, res) => {
+interface ProductQuery {
+  page?: string;
+  limit?: string;
+}
+
+interface ProductBody extends Partial<ProductType> {
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  category: string;
+  image: string;
+}
+
+export const getProducts = async (req: Request<{}, {}, {}, ProductQuery>, res: Response<ApiResponse>): Promise<void> => {
   try {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 12;
     const skip = (page - 1) * limit;
 
-    // Get total count for pagination
     const total = await Product.countDocuments({ isDeleted: false });
 
-    // Get products sorted by newest first
     const products = await Product.find({ isDeleted: false })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    // Check for active orders for each product
     const productsWithOrderInfo = await Promise.all(
       products.map(async (product) => {
         const activeOrdersCount = await Order.countDocuments({
@@ -47,23 +57,21 @@ exports.getProducts = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: (error as Error).message,
     });
   }
 };
 
-// @desc    Get single product
-// @route   GET /api/products/:id
-// @access  Public
-exports.getProduct = async (req, res) => {
+export const getProduct = async (req: Request<{ id: string }>, res: Response<ApiResponse>): Promise<void> => {
   try {
     const product = await Product.findById(req.params.id);
 
     if (!product || product.isDeleted) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Product not found',
       });
+      return;
     }
 
     res.status(200).json({
@@ -74,15 +82,12 @@ exports.getProduct = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: (error as Error).message,
     });
   }
 };
 
-// @desc    Create product
-// @route   POST /api/products
-// @access  Private/Admin
-exports.createProduct = async (req, res) => {
+export const createProduct = async (req: Request<{}, {}, ProductBody>, res: Response<ApiResponse>): Promise<void> => {
   try {
     const product = await Product.create(req.body);
 
@@ -94,15 +99,12 @@ exports.createProduct = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: (error as Error).message,
     });
   }
 };
 
-// @desc    Update product
-// @route   PUT /api/products/:id
-// @access  Private/Admin
-exports.updateProduct = async (req, res) => {
+export const updateProduct = async (req: Request<{ id: string }, {}, ProductBody>, res: Response<ApiResponse>): Promise<void> => {
   try {
     const product = await Product.findByIdAndUpdate(
       req.params.id,
@@ -114,10 +116,11 @@ exports.updateProduct = async (req, res) => {
     );
 
     if (!product) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Product not found',
       });
+      return;
     }
 
     res.status(200).json({
@@ -128,47 +131,39 @@ exports.updateProduct = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: (error as Error).message,
     });
   }
 };
 
-/**
- * @desc    Delete product (Soft Delete)
- * @route   DELETE /api/products/:id
- * @access  Private/Admin
- * @note    Checks for active orders before deleting
- *          If active orders exist, returns error with count
- *          Otherwise, marks product as deleted (soft delete)
- */
-exports.deleteProduct = async (req, res) => {
+export const deleteProduct = async (req: Request<{ id: string }>, res: Response<ApiResponse>): Promise<void> => {
   try {
     const product = await Product.findById(req.params.id);
 
     if (!product) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Product not found',
       });
+      return;
     }
 
-    // Check for active orders containing this product
     const activeOrders = await Order.find({
       'orderItems.product': req.params.id,
       status: { $in: ['Pending', 'Approved', 'Shipped'] }
     });
 
     if (activeOrders.length > 0) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: `Cannot delete product with active orders`,
         activeOrdersCount: activeOrders.length,
         canSoftDelete: true,
         suggestion: 'Mark product as unavailable instead'
       });
+      return;
     }
 
-    // Soft delete: Mark as deleted instead of removing
     product.isDeleted = true;
     product.deletedAt = new Date();
     product.active = false;
@@ -184,29 +179,23 @@ exports.deleteProduct = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: (error as Error).message,
     });
   }
 };
 
-/**
- * @desc    Soft delete product (alternative endpoint)
- * @route   PATCH /api/products/:id/soft-delete
- * @access  Private/Admin
- * @note    Explicitly marks product as unavailable without checking orders
- */
-exports.softDeleteProduct = async (req, res) => {
+export const softDeleteProduct = async (req: Request<{ id: string }>, res: Response<ApiResponse>): Promise<void> => {
   try {
     const product = await Product.findById(req.params.id);
 
     if (!product) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Product not found',
       });
+      return;
     }
 
-    // Soft delete
     product.isDeleted = true;
     product.deletedAt = new Date();
     product.active = false;
@@ -222,7 +211,7 @@ exports.softDeleteProduct = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: (error as Error).message,
     });
   }
 };

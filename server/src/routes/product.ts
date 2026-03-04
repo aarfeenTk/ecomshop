@@ -1,15 +1,15 @@
-const express = require('express');
-const { body, param } = require('express-validator');
-const {
+import express from 'express';
+import { body, param } from 'express-validator';
+import {
   getProducts,
   getProduct,
   createProduct,
   updateProduct,
   deleteProduct,
   softDeleteProduct,
-} = require('../controllers/product');
-const { protect, authorize } = require('../middleware/auth');
-const { handleValidationErrors } = require('../middleware/validation');
+} from '../controllers/product';
+import { protect, authorize } from '../middleware/auth';
+import { handleValidationErrors } from '../middleware/validation';
 
 const router = express.Router();
 
@@ -28,7 +28,7 @@ router
       body('image').notEmpty().withMessage('Image is required'),
     ],
     handleValidationErrors,
-    createProduct
+    createProduct as any
   );
 
 router
@@ -51,24 +51,23 @@ router
       body('image').optional().notEmpty().withMessage('Image cannot be empty'),
     ],
     handleValidationErrors,
-    updateProduct
+    updateProduct as any
   )
   .delete(
     protect,
     authorize('admin'),
     param('id').isMongoId().withMessage('Invalid product ID'),
     handleValidationErrors,
-    deleteProduct
+    deleteProduct as any
   );
 
-// Soft delete endpoint (alternative to hard delete)
 router.patch(
   '/:id/soft-delete',
   protect,
   authorize('admin'),
   param('id').isMongoId().withMessage('Invalid product ID'),
   handleValidationErrors,
-  softDeleteProduct
+  softDeleteProduct as any
 );
 
-module.exports = router;
+export default router;
