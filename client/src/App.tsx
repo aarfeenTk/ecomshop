@@ -19,6 +19,7 @@ import Checkout from './pages/customer/Checkout';
 import Orders from './pages/customer/Orders';
 import AdminProductsList from './pages/admin/AdminProductsList';
 import AdminOrders from './pages/admin/AdminOrders';
+import AdminOrderDetail from './pages/admin/AdminOrderDetail';
 import ProductForm from './pages/admin/ProductForm';
 
 const theme = createTheme({
@@ -71,6 +72,7 @@ const AppContent = () => {
             <Route path="/admin/products/create" element={<AdminRoute><ProductForm /></AdminRoute>} />
             <Route path="/admin/products/edit/:id" element={<AdminRoute><ProductForm /></AdminRoute>} />
             <Route path="/admin/orders" element={<AdminRoute><AdminOrders /></AdminRoute>} />
+            <Route path="/admin/orders/:id" element={<AdminRoute><AdminOrderDetail /></AdminRoute>} />
           </Routes>
         </Container>
       </Box>

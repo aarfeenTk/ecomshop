@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useOrders, useUpdateOrderStatus } from "../../hooks/useOrders";
 import {
   ORDER_STATUSES,
@@ -34,6 +35,7 @@ import {
   Grid,
   TextField,
   SelectChangeEvent,
+  IconButton,
 } from "@mui/material";
 import {
   ShoppingBag,
@@ -42,6 +44,7 @@ import {
   CheckCircle,
   Pending,
   Assignment,
+  Visibility,
 } from "@mui/icons-material";
 import { Order, OrderStatus, PaymentMethod } from "../../types";
 
@@ -57,6 +60,7 @@ interface SnackbarState {
 
 const AdminOrders: React.FC = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const { data: ordersData, isLoading: loading, error, refetch } = useOrders();
   const orders: Order[] = ordersData?.data || [];
   const updateOrderStatusMutation = useUpdateOrderStatus();
@@ -516,7 +520,8 @@ const AdminOrders: React.FC = () => {
                     <TableCell>Total</TableCell>
                     <TableCell>Payment</TableCell>
                     <TableCell>Status</TableCell>
-                    <TableCell sx={{ pr: 3 }}>Date</TableCell>
+                    <TableCell>Date</TableCell>
+                    <TableCell sx={{ pr: 3 }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -680,7 +685,11 @@ const AdminOrders: React.FC = () => {
                               gap: 1,
                             }}
                           >
-                            <FormControl size="small" sx={{ minWidth: 120 }}>
+                            <FormControl 
+                              size="small" 
+                              sx={{ minWidth: 120 }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <Select
                                 value={order.status}
                                 onChange={(e: SelectChangeEvent) =>
@@ -751,6 +760,22 @@ const AdminOrders: React.FC = () => {
                           <Typography variant="body2" color="text.secondary">
                             {new Date(order.createdAt!).toLocaleDateString()}
                           </Typography>
+                        </TableCell>
+                        <TableCell sx={{ pr: 3 }}>
+                          <IconButton
+                            onClick={() => navigate(`/admin/orders/${order._id}`)}
+                            size="small"
+                            sx={{
+                              bgcolor: "primary.50",
+                              color: "primary.main",
+                              "&:hover": {
+                                bgcolor: "primary.main",
+                                color: "white",
+                              },
+                            }}
+                          >
+                            <Visibility />
+                          </IconButton>
                         </TableCell>
                       </TableRow>
                     ))

@@ -48,20 +48,29 @@ export function useOrders() {
   });
 }
 
+export function useOrder(id: string | null) {
+  return useQuery<ApiResponse<Order>>({
+    queryKey: ["order", id],
+    queryFn: async () => {
+      const response = await api.get(`${API_BASE}/${id}`);
+      return response.data;
+    },
+    enabled: !!id,
+  });
+}
+
 export function useUpdateOrderStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ id, status }: UpdateOrderStatusData) => {
-      const response = await api.put(
-        `${API_BASE}/${id}/status`,
-        { status },
-      );
+      const response = await api.put(`${API_BASE}/${id}/status`, { status });
       return response.data.data;
     },
     onSuccess: (data: Order) => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["myOrders"] });
+      queryClient.invalidateQueries({ queryKey: ["order", data._id] });
     },
   });
 }
