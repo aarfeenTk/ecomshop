@@ -9,10 +9,15 @@ export interface UserDocument extends Document {
   role: 'user' | 'admin';
   isAdmin: boolean;
   cart: any[];
+  refreshToken?: string;
+  refreshTokenExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
   getSignedJwtToken(): string;
   matchPassword(enteredPassword: string): Promise<boolean>;
+  generateRefreshToken(): string;
+  clearRefreshToken(): Promise<void>;
+  isRefreshTokenValid(): boolean;
 }
 
 export interface ProductDocument extends Document {
@@ -80,6 +85,8 @@ export interface ApiResponse<T = any> {
   data?: T;
   message?: string;
   token?: string;
+  accessToken?: string;
+  refreshToken?: string;
   error?: string;
   count?: number;
   total?: number;

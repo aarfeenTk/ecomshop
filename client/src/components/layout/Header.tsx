@@ -35,7 +35,7 @@ const Header: React.FC = () => {
   const isMenuOpen = Boolean(anchorEl);
   const isUserMenuOpen = Boolean(userMenuAnchorEl);
   const { user } = useSelector((state: RootState) => state.auth);
-  const { data: cartData } = useCart();
+  const { data: cartData, isError: cartError } = useCart();
   const items = cartData?.data || [];
   const dispatch = useDispatch();
   const navigate = useNavigate();

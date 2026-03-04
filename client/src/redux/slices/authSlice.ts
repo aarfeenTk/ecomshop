@@ -1,17 +1,12 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { User, AuthState } from "../../types";
+import { getAccessToken, getUser as getStoredUser, setUser as setStoredUser, clearTokens, setTokens } from "../../utils/api";
 
 const checkAuth = (): User | null => {
-  const token = localStorage.getItem("token");
-  const user = localStorage.getItem("user");
+  const token = getAccessToken();
+  const user = getStoredUser();
   if (token && user) {
-    try {
-      return JSON.parse(user);
-    } catch (error) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      return null;
-    }
+    return user as User;
   }
   return null;
 };
@@ -28,14 +23,21 @@ const authSlice = createSlice({
   reducers: {
     logout: (state) => {
       state.user = null;
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      clearTokens();
     },
     setUser: (state, action: { payload: User | null }) => {
       state.user = action.payload;
+      if (action.payload) {
+        setStoredUser(action.payload);
+      } else {
+        localStorage.removeItem("user");
+      }
+    },
+    setAuthTokens: (state, action: { payload: { accessToken: string; refreshToken: string } }) => {
+      setTokens(action.payload.accessToken, action.payload.refreshToken);
     },
   },
 });
 
-export const { logout, setUser } = authSlice.actions;
+export const { logout, setUser, setAuthTokens } = authSlice.actions;
 export default authSlice.reducer;

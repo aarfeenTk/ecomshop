@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import axios from "axios";
+import api, { setTokens, setUser, clearTokens } from "../utils/api";
 import { LoginCredentials, RegisterData, AuthResponse, User } from "../types";
 
 export function useLogin() {
@@ -9,13 +9,14 @@ export function useLogin() {
     LoginCredentials
   >({
     mutationFn: async (credentials) => {
-      const response = await axios.post<AuthResponse>(
+      const response = await api.post<AuthResponse>(
         "/api/auth/login",
         credentials,
       );
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.data.user));
-      return response.data.data.user;
+      const { accessToken, refreshToken, data } = response.data;
+      setTokens(accessToken, refreshToken);
+      setUser(data.user);
+      return data.user;
     },
   });
 }
@@ -27,13 +28,34 @@ export function useRegister() {
     RegisterData
   >({
     mutationFn: async (userData) => {
-      const response = await axios.post<AuthResponse>(
+      const response = await api.post<AuthResponse>(
         "/api/auth/register",
         userData,
       );
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.data.user));
-      return response.data.data.user;
+      const { accessToken, refreshToken, data } = response.data;
+      setTokens(accessToken, refreshToken);
+      setUser(data.user);
+      return data.user;
+    },
+  });
+}
+
+export function useLogout() {
+  return useMutation<void, unknown, { refreshToken?: string }>({
+    mutationFn: async ({ refreshToken }) => {
+      if (refreshToken) {
+        await api.post("/api/auth/logout", { refreshToken });
+      }
+      clearTokens();
+    },
+  });
+}
+
+export function useLogoutAll() {
+  return useMutation<void, unknown, void>({
+    mutationFn: async () => {
+      await api.post("/api/auth/logout-all");
+      clearTokens();
     },
   });
 }

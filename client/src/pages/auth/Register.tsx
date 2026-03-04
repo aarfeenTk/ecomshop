@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useRegister } from "../../hooks/useAuth";
 import { setUser } from "../../redux/slices/authSlice";
 import {
@@ -32,6 +32,7 @@ import {
   Person,
   Lock,
 } from "@mui/icons-material";
+import { RootState } from "../../redux/store";
 
 const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -40,8 +41,16 @@ const Register = () => {
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { user } = useSelector((state: RootState) => state.auth);
   const registerMutation = useRegister();
   const loading = registerMutation.isPending;
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, navigate]);
 
   const {
     register,

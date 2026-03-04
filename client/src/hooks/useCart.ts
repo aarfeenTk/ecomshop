@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
+import api from "../utils/api";
 import {
   CartItem,
   AddToCartData,
@@ -10,18 +10,21 @@ import {
 
 const API_BASE = "/api/cart";
 
-const getAuthHeaders = () => {
-  const token = localStorage.getItem("token");
-  return { headers: { Authorization: `Bearer ${token}` } };
-};
-
 export function useCart() {
   return useQuery<ApiResponse<CartItem[]>>({
     queryKey: ["cart"],
     queryFn: async () => {
-      const response = await axios.get(API_BASE, getAuthHeaders());
+      const response = await api.get(API_BASE);
       return response.data;
     },
+    retry: (failureCount, error: any) => {
+      // Don't retry on 401 errors (unauthorized)
+      if (error.response?.status === 401) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
@@ -30,7 +33,7 @@ export function useAddToCart() {
 
   return useMutation({
     mutationFn: async (itemData: AddToCartData) => {
-      const response = await axios.post(API_BASE, itemData, getAuthHeaders());
+      const response = await api.post(API_BASE, itemData);
       return response.data.data;
     },
     onMutate: async (newItem) => {
@@ -95,10 +98,9 @@ export function useUpdateCartItem() {
 
   return useMutation({
     mutationFn: async ({ productId, quantity }: UpdateCartItemData) => {
-      const response = await axios.put(
+      const response = await api.put(
         `${API_BASE}/${productId}`,
         { quantity },
-        getAuthHeaders(),
       );
       return response.data.data;
     },
@@ -136,9 +138,8 @@ export function useRemoveFromCart() {
 
   return useMutation({
     mutationFn: async (productId: string) => {
-      const response = await axios.delete(
+      const response = await api.delete(
         `${API_BASE}/${productId}`,
-        getAuthHeaders(),
       );
       return response.data.data;
     },

@@ -111,10 +111,20 @@ export interface RegisterData {
 }
 
 export interface AuthResponse {
-  token: string;
+  success: boolean;
+  accessToken: string;
+  refreshToken: string;
   data: {
     user: User;
   };
+  message?: string;
+}
+
+export interface RefreshTokenResponse {
+  success: boolean;
+  accessToken: string;
+  refreshToken: string;
+  message?: string;
 }
 
 // Cart API types

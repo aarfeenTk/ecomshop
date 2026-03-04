@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useLogin } from "../../hooks/useAuth";
 import { setUser } from "../../redux/slices/authSlice";
 import { loginSchema, LoginFormData } from "../../validations/authValidation";
@@ -27,6 +27,7 @@ import {
   VisibilityOff,
   Email,
 } from "@mui/icons-material";
+import { RootState } from "../../redux/store";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -34,8 +35,16 @@ const Login = () => {
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { user } = useSelector((state: RootState) => state.auth);
   const loginMutation = useLogin();
   const loading = loginMutation.isPending;
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, navigate]);
 
   const {
     register,

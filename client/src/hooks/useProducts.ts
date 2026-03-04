@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
+import api from "../utils/api";
 import { Product, PaginatedResponse, ApiResponse } from "../types";
 
 const API_BASE = "/api/products";
@@ -8,7 +8,7 @@ export function useProducts(page: number = 1, limit: number = 12) {
   return useQuery<PaginatedResponse<Product>>({
     queryKey: ["products", page, limit],
     queryFn: async () => {
-      const response = await axios.get(
+      const response = await api.get(
         `${API_BASE}?page=${page}&limit=${limit}`,
       );
       return response.data;
@@ -20,7 +20,7 @@ export function useProduct(id: string | null) {
   return useQuery<ApiResponse<Product>>({
     queryKey: ["product", id],
     queryFn: async () => {
-      const response = await axios.get(`${API_BASE}/${id}`);
+      const response = await api.get(`${API_BASE}/${id}`);
       return response.data;
     },
     enabled: !!id,
@@ -32,10 +32,7 @@ export function useCreateProduct() {
 
   return useMutation({
     mutationFn: async (productData: Partial<Product>) => {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(API_BASE, productData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await api.post(API_BASE, productData);
       return response.data.data;
     },
     onSuccess: () => {
@@ -55,10 +52,7 @@ export function useUpdateProduct() {
       id: string;
       productData: Partial<Product>;
     }) => {
-      const token = localStorage.getItem("token");
-      const response = await axios.put(`${API_BASE}/${id}`, productData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await api.put(`${API_BASE}/${id}`, productData);
       return response.data.data;
     },
     onSuccess: (data: Product) => {
@@ -73,10 +67,7 @@ export function useDeleteProduct() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const token = localStorage.getItem("token");
-      await axios.delete(`${API_BASE}/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.delete(`${API_BASE}/${id}`);
       return id;
     },
     onSuccess: (id: string) => {
@@ -91,13 +82,8 @@ export function useSoftDeleteProduct() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const token = localStorage.getItem("token");
-      const response = await axios.patch(
+      const response = await api.patch(
         `${API_BASE}/${id}/soft-delete`,
-        null,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
       );
       return response.data.data;
     },

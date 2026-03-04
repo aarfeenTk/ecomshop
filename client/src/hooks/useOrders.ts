@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
+import api from "../utils/api";
 import {
   Order,
   CreateOrderData,
@@ -10,17 +10,12 @@ import {
 
 const API_BASE = "/api/orders";
 
-const getAuthHeaders = () => {
-  const token = localStorage.getItem("token");
-  return { headers: { Authorization: `Bearer ${token}` } };
-};
-
 export function useCreateOrder() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (orderData: CreateOrderData) => {
-      const response = await axios.post(API_BASE, orderData, getAuthHeaders());
+      const response = await api.post(API_BASE, orderData);
       return response.data.data;
     },
     onSuccess: () => {
@@ -35,9 +30,8 @@ export function useMyOrders(page: number = 1, limit: number = 10) {
   return useQuery<PaginatedResponse<Order>>({
     queryKey: ["myOrders", page, limit],
     queryFn: async () => {
-      const response = await axios.get(
+      const response = await api.get(
         `${API_BASE}/my?page=${page}&limit=${limit}`,
-        getAuthHeaders(),
       );
       return response.data;
     },
@@ -48,7 +42,7 @@ export function useOrders() {
   return useQuery<ApiResponse<Order[]>>({
     queryKey: ["orders"],
     queryFn: async () => {
-      const response = await axios.get(API_BASE, getAuthHeaders());
+      const response = await api.get(API_BASE);
       return response.data;
     },
   });
@@ -59,10 +53,9 @@ export function useUpdateOrderStatus() {
 
   return useMutation({
     mutationFn: async ({ id, status }: UpdateOrderStatusData) => {
-      const response = await axios.put(
+      const response = await api.put(
         `${API_BASE}/${id}/status`,
         { status },
-        getAuthHeaders(),
       );
       return response.data.data;
     },
