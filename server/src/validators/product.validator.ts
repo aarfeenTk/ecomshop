@@ -1,12 +1,7 @@
 import { body, param, query } from 'express-validator';
 import { handleValidationErrors } from '../middleware/validation';
 
-/**
- * Product validation rules
- * Reusable validation middleware for product routes
- */
 
-// ID validation
 export const validateProductId = [
   param('id')
     .isString()
@@ -16,7 +11,6 @@ export const validateProductId = [
   handleValidationErrors,
 ];
 
-// Create product validation
 export const validateCreateProduct = [
   body('name')
     .trim()
@@ -52,12 +46,10 @@ export const validateCreateProduct = [
     .notEmpty()
     .withMessage('Image is required')
     .custom((value) => {
-      // Accept either a URL or a base64 encoded image
       try {
         new URL(value);
         return true;
       } catch {
-        // If not a URL, check if it's a valid base64 data URI
         if (value.startsWith('data:image/') && value.includes('base64,')) {
           return true;
         }
@@ -68,7 +60,6 @@ export const validateCreateProduct = [
   handleValidationErrors,
 ];
 
-// Update product validation (all fields optional)
 export const validateUpdateProduct = [
   body('name')
     .optional()
@@ -110,12 +101,10 @@ export const validateUpdateProduct = [
     .notEmpty()
     .withMessage('Image cannot be empty')
     .custom((value) => {
-      // Accept either a URL or a base64 encoded image
       try {
         new URL(value);
         return true;
       } catch {
-        // If not a URL, check if it's a valid base64 data URI
         if (value.startsWith('data:image/') && value.includes('base64,')) {
           return true;
         }
@@ -126,7 +115,6 @@ export const validateUpdateProduct = [
   handleValidationErrors,
 ];
 
-// Query parameter validation for getProducts
 export const validateProductQuery = [
   query('page')
     .optional()

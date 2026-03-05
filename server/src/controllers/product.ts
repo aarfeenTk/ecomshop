@@ -4,10 +4,6 @@ import productService, { ProductWithOrderInfo, CreateProductData, UpdateProductD
 import { asyncHandler } from '../utils/asyncHandler';
 import { sendSuccessResponse, sendPaginatedResponse, sendCreatedResponse } from '../utils/response';
 
-/**
- * Get all products with pagination
- * GET /api/products?page=1&limit=12&category=electronics&search=laptop
- */
 export const getProducts = asyncHandler(async (req: Request, res: Response) => {
   const query = req.query as any;
   
@@ -41,10 +37,6 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
-/**
- * Get single product by ID
- * GET /api/products/:id
- */
 export const getProduct = asyncHandler(async (req: Request<{ id: string }>, res: Response) => {
   const product = await productService.getProductById(req.params.id);
 
@@ -56,20 +48,12 @@ export const getProduct = asyncHandler(async (req: Request<{ id: string }>, res:
   );
 });
 
-/**
- * Create new product
- * POST /api/products
- */
 export const createProduct = asyncHandler(async (req: Request<{}, {}, CreateProductData>, res: Response) => {
   const product = await productService.createProduct(req.body);
 
   sendCreatedResponse(res, product, 'Product created successfully');
 });
 
-/**
- * Update product
- * PUT /api/products/:id
- */
 export const updateProduct = asyncHandler(async (req: Request<{ id: string }, {}, UpdateProductData>, res: Response) => {
   const product = await productService.updateProduct(req.params.id, req.body);
 
@@ -81,10 +65,6 @@ export const updateProduct = asyncHandler(async (req: Request<{ id: string }, {}
   );
 });
 
-/**
- * Delete product (soft delete)
- * DELETE /api/products/:id
- */
 export const deleteProduct = asyncHandler(async (req: Request<{ id: string }>, res: Response) => {
   const product = await productService.deleteProduct(req.params.id);
 
@@ -96,10 +76,6 @@ export const deleteProduct = asyncHandler(async (req: Request<{ id: string }>, r
   );
 });
 
-/**
- * Soft delete product
- * PATCH /api/products/:id/soft-delete
- */
 export const softDeleteProduct = asyncHandler(async (req: Request<{ id: string }>, res: Response) => {
   const product = await productService.softDeleteProduct(req.params.id);
 

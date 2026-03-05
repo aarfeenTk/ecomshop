@@ -6,28 +6,16 @@ import {
   BadRequestError,
 } from '../errors';
 
-/**
- * Cart item data
- */
 export interface CartItemData {
   productId: string;
   quantity?: number;
 }
 
-/**
- * Update cart item data
- */
 export interface UpdateCartItemData {
   quantity: number;
 }
 
-/**
- * CartService - Handles business logic for cart operations
- */
 class CartService {
-  /**
-   * Get user's cart
-   */
   async getCart(userId: string) {
     const user = await User.findById(userId).populate({
       path: 'cart.product',
@@ -42,9 +30,6 @@ class CartService {
     return user.cart || [];
   }
 
-  /**
-   * Add item to cart
-   */
   async addToCart(userId: string, data: CartItemData) {
     const { productId, quantity = 1 } = data;
 
@@ -58,7 +43,6 @@ class CartService {
       throw new NotFoundError('User not found');
     }
 
-    // Verify product exists and is active
     const product = await Product.findById(productId);
     
     if (!product) {
@@ -73,16 +57,13 @@ class CartService {
       throw new BadRequestError(`Only ${product.stock} items available in stock`);
     }
 
-    // Check if product already in cart
     const existingItemIndex = user.cart.findIndex(
       (item) => item.product?.toString() === productId,
     );
 
     if (existingItemIndex >= 0) {
-      // Update quantity
       user.cart[existingItemIndex].quantity += quantity;
     } else {
-      // Add new item
       user.cart.push({
         product: productId,
         quantity,
@@ -91,13 +72,9 @@ class CartService {
 
     await user.save();
 
-    // Return updated cart with populated product info
     return this.getCart(userId);
   }
 
-  /**
-   * Update cart item quantity
-   */
   async updateCartItem(userId: string, productId: string, data: UpdateCartItemData) {
     const { quantity } = data;
 
@@ -119,7 +96,6 @@ class CartService {
       throw new NotFoundError('Cart item not found');
     }
 
-    // Verify product stock
     const product = await Product.findById(productId);
     
     if (!product || !product.active || product.isDeleted) {
@@ -136,9 +112,6 @@ class CartService {
     return this.getCart(userId);
   }
 
-  /**
-   * Remove item from cart
-   */
   async removeFromCart(userId: string, productId: string) {
     const user = await User.findById(userId) as UserDocument | null;
     
@@ -160,9 +133,6 @@ class CartService {
     return this.getCart(userId);
   }
 
-  /**
-   * Clear entire cart
-   */
   async clearCart(userId: string) {
     const user = await User.findById(userId) as UserDocument | null;
     
@@ -176,9 +146,6 @@ class CartService {
     return [];
   }
 
-  /**
-   * Get cart item count
-   */
   async getCartCount(userId: string): Promise<number> {
     const user = await User.findById(userId);
     

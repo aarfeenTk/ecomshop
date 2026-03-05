@@ -9,10 +9,6 @@ interface MongooseConnectionOptions {
   socketTimeoutMS?: number;
 }
 
-/**
- * Database connection with retry logic and connection pooling
- * Implements exponential backoff for reconnection attempts
- */
 const connectDB = async (options: MongooseConnectionOptions = {}): Promise<void> => {
   const {
     maxRetries = 5,
@@ -31,17 +27,16 @@ const connectDB = async (options: MongooseConnectionOptions = {}): Promise<void>
   let retries = 0;
   let connected = false;
 
-  // Mongoose connection options for production
   const mongooseOptions: mongoose.ConnectOptions = {
     serverSelectionTimeoutMS,
     socketTimeoutMS,
-    maxPoolSize: 10, // Maintain up to 10 socket connections
-    minPoolSize: 5, // Maintain at least 5 socket connections
-    maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
+    maxPoolSize: 10,
+    minPoolSize: 5,
+    maxIdleTimeMS: 30000,
     retryWrites: true,
     retryReads: true,
-    w: 'majority', // Write concern
-    readPreference: 'secondaryPreferred', // Read preference
+    w: 'majority',
+    readPreference: 'secondaryPreferred',
     authSource: 'admin',
   };
 
@@ -56,7 +51,6 @@ const connectDB = async (options: MongooseConnectionOptions = {}): Promise<void>
         name: conn.connection.name,
       });
 
-      // Handle connection events
       mongoose.connection.on('error', (error) => {
         logger.error('MongoDB connection error:', { error: error.message });
       });
@@ -71,7 +65,6 @@ const connectDB = async (options: MongooseConnectionOptions = {}): Promise<void>
         connected = true;
       });
 
-      // Graceful shutdown
       process.on('SIGINT', async () => {
         try {
           await mongoose.connection.close();
@@ -107,7 +100,6 @@ const connectDB = async (options: MongooseConnectionOptions = {}): Promise<void>
         throw new ServiceUnavailableError('Unable to connect to database');
       }
 
-      // Exponential backoff
       const delay = retryDelay * Math.pow(2, retries - 1);
       logger.info(`Retrying connection in ${delay}ms...`);
       

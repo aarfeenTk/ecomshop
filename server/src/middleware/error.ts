@@ -26,10 +26,6 @@ interface MongooseErrorWithCode extends Error {
   details?: Record<string, unknown>;
 }
 
-/**
- * Production error handler middleware
- * Handles all types of errors: operational, programming, and database errors
- */
 const errorHandler = (
   err: MongooseErrorWithCode,
   req: Request,
@@ -39,7 +35,6 @@ const errorHandler = (
   let error: MongooseErrorWithCode = { ...err };
   error.message = err.message;
 
-  // Log error for debugging
   logger.error('Error occurred:', {
     message: err.message,
     stack: err.stack,
@@ -48,7 +43,6 @@ const errorHandler = (
     ip: req.ip,
   });
 
-  // Handle Mongoose validation errors
   if (err.name === 'ValidationError') {
     const message = handleValidationError(err.errors!).message;
     error.message = message;
@@ -56,7 +50,6 @@ const errorHandler = (
     error.code = 'VALIDATION_ERROR';
   }
 
-  // Handle Mongoose duplicate key errors (11000)
   if (err.code === '11000' || (err as any).code === 11000) {
     const { message, field } = handleDuplicateKeyError(err.keyValue!);
     error.message = message;
@@ -65,7 +58,6 @@ const errorHandler = (
     error.details = { field };
   }
 
-  // Handle Mongoose cast errors (invalid ObjectId)
   if (err.name === 'CastError') {
     error.message = 'Invalid ID format';
     error.statusCode = StatusCodes.BAD_REQUEST;
@@ -73,7 +65,6 @@ const errorHandler = (
     error.details = { path: err.path };
   }
 
-  // Handle JWT errors
   if (err instanceof TokenExpiredError) {
     error.message = 'Session expired. Please login again.';
     error.statusCode = StatusCodes.UNAUTHORIZED;
@@ -86,20 +77,17 @@ const errorHandler = (
     error.code = 'INVALID_TOKEN';
   }
 
-  // Handle Mongoose connection errors
   if (err instanceof MongooseError && err.message.includes('ECONNREFUSED')) {
     error.message = 'Database connection failed';
     error.statusCode = StatusCodes.SERVICE_UNAVAILABLE;
     error.code = 'DATABASE_ERROR';
   }
 
-  // Handle operational errors (known errors)
   if (err.isOperational) {
     error.statusCode = err.statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
     error.code = err.code || 'OPERATIONAL_ERROR';
   }
 
-  // Default error
   if (!error.statusCode) {
     error.message = process.env.NODE_ENV === 'production' 
       ? 'An unexpected error occurred' 
@@ -108,19 +96,16 @@ const errorHandler = (
     error.code = 'INTERNAL_ERROR';
   }
 
-  // Prepare error response
   const errorResponse: Record<string, unknown> = {
     success: false,
     message: error.message,
     code: error.code,
   };
 
-  // Include request ID for tracing
   if (req.requestId) {
     errorResponse.requestId = req.requestId;
   }
 
-  // Include details in development
   if (process.env.NODE_ENV === 'development') {
     errorResponse.stack = error.stack;
     if (error.details) {
@@ -131,9 +116,6 @@ const errorHandler = (
   res.status(error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR).json(errorResponse);
 };
 
-/**
- * Handle Mongoose validation errors
- */
 const handleValidationError = (errors: Record<string, MongooseValidationError>): { message: string } => {
   const messages = Object.values(errors).map((err) => {
     if (err.kind === 'required') {
@@ -157,9 +139,6 @@ const handleValidationError = (errors: Record<string, MongooseValidationError>):
   return { message: messages.join(', ') };
 };
 
-/**
- * Handle Mongoose duplicate key errors
- */
 const handleDuplicateKeyError = (keyValue: Record<string, unknown>): { message: string; field: string } => {
   const field = Object.keys(keyValue)[0];
   

@@ -1,12 +1,7 @@
 import { body, param, query } from "express-validator";
 import { handleValidationErrors } from "../middleware/validation";
 
-/**
- * Cart validation rules
- * Reusable validation middleware for cart routes
- */
 
-// Add to cart validation
 export const validateAddToCart = [
   body("productId")
     .trim()
@@ -24,7 +19,6 @@ export const validateAddToCart = [
   handleValidationErrors,
 ];
 
-// Update cart item validation
 export const validateUpdateCartItem = [
   param("productId")
     .trim()
@@ -41,7 +35,6 @@ export const validateUpdateCartItem = [
   handleValidationErrors,
 ];
 
-// Remove from cart validation
 export const validateRemoveFromCart = [
   param("productId")
     .trim()

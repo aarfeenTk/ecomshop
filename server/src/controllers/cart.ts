@@ -6,10 +6,6 @@ import { sendSuccessResponse } from '../utils/response';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { CartItemData, UpdateCartItemData } from '../services/cart.service';
 
-/**
- * Get user's cart
- * GET /api/cart
- */
 export const getCart = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user!.id;
   const cart = await cartService.getCart(userId);
@@ -22,10 +18,6 @@ export const getCart = asyncHandler(async (req: AuthenticatedRequest, res: Respo
   );
 });
 
-/**
- * Add item to cart
- * POST /api/cart
- */
 export const addToCart = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user!.id;
   const itemData = req.body as CartItemData;
@@ -40,10 +32,6 @@ export const addToCart = asyncHandler(async (req: AuthenticatedRequest, res: Res
   );
 });
 
-/**
- * Update cart item quantity
- * PUT /api/cart/:productId
- */
 export const updateCartItem = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user!.id;
   const productId = req.params.productId as string;
@@ -59,10 +47,6 @@ export const updateCartItem = asyncHandler(async (req: AuthenticatedRequest, res
   );
 });
 
-/**
- * Remove item from cart
- * DELETE /api/cart/:productId
- */
 export const removeFromCart = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user!.id;
   const productId = req.params.productId as string;
@@ -77,10 +61,6 @@ export const removeFromCart = asyncHandler(async (req: AuthenticatedRequest, res
   );
 });
 
-/**
- * Clear entire cart
- * DELETE /api/cart
- */
 export const clearCart = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user!.id;
   await cartService.clearCart(userId);

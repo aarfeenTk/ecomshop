@@ -1,9 +1,6 @@
 import { Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 
-/**
- * Standardized API response structure
- */
 export interface ApiResponse<T = unknown> {
   success: boolean;
   message?: string;
@@ -14,9 +11,6 @@ export interface ApiResponse<T = unknown> {
   path?: string;
 }
 
-/**
- * Response metadata for pagination
- */
 export interface ResponseMeta {
   page?: number;
   limit?: number;
@@ -25,9 +19,6 @@ export interface ResponseMeta {
   count?: number;
 }
 
-/**
- * Send success response
- */
 export const sendSuccessResponse = <T>(
   res: Response,
   data: T,
@@ -44,7 +35,6 @@ export const sendSuccessResponse = <T>(
     path: res.req.path,
   };
 
-  // Include request ID if available
   if (res.req.requestId) {
     (response as any).requestId = res.req.requestId;
   }
@@ -52,9 +42,6 @@ export const sendSuccessResponse = <T>(
   res.status(statusCode).json(response);
 };
 
-/**
- * Send error response
- */
 export const sendErrorResponse = (
   res: Response,
   message: string,
@@ -77,9 +64,6 @@ export const sendErrorResponse = (
   res.status(statusCode).json(response);
 };
 
-/**
- * Send created response (201)
- */
 export const sendCreatedResponse = <T>(
   res: Response,
   data: T,
@@ -88,16 +72,10 @@ export const sendCreatedResponse = <T>(
   sendSuccessResponse(res, data, message, StatusCodes.CREATED);
 };
 
-/**
- * Send no content response (204)
- */
 export const sendNoContentResponse = (res: Response): void => {
   res.status(StatusCodes.NO_CONTENT).send();
 };
 
-/**
- * Send paginated response
- */
 export const sendPaginatedResponse = <T>(
   res: Response,
   data: T[],

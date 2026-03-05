@@ -8,9 +8,6 @@ import {
 } from '../errors';
 import { FilterQuery } from 'mongoose';
 
-/**
- * Product query parameters
- */
 export interface ProductQuery {
   page: number;
   limit: number;
@@ -22,9 +19,6 @@ export interface ProductQuery {
   sortOrder?: 'asc' | 'desc';
 }
 
-/**
- * Product creation data
- */
 export interface CreateProductData {
   name: string;
   description: string;
@@ -34,26 +28,14 @@ export interface CreateProductData {
   image: string;
 }
 
-/**
- * Product update data
- */
 export interface UpdateProductData extends Partial<CreateProductData> {}
 
-/**
- * Product with order information
- */
 export interface ProductWithOrderInfo extends ProductDocument {
   hasActiveOrders: boolean;
   activeOrdersCount: number;
 }
 
-/**
- * ProductService - Handles business logic for products
- */
 class ProductService {
-  /**
-   * Get all products with pagination and filtering
-   */
   async getProducts(query: ProductQuery) {
     const {
       page = 1,
@@ -68,7 +50,6 @@ class ProductService {
 
     const skip = (page - 1) * limit;
 
-    // Build filter query
     const filterQuery: FilterQuery<ProductDocument> = { isDeleted: false };
 
     if (category) {
@@ -88,16 +69,13 @@ class ProductService {
       if (maxPrice !== undefined) filterQuery.price.$lte = maxPrice;
     }
 
-    // Get total count
     const total = await Product.countDocuments(filterQuery);
 
-    // Get products
     const products = await Product.find(filterQuery)
       .sort({ [sortBy]: sortOrder })
       .skip(skip)
       .limit(limit);
 
-    // Get active order counts for each product
     const productsWithOrderInfo = await Promise.all(
       products.map(async (product) => {
         const activeOrdersCount = await Order.countDocuments({
@@ -124,9 +102,6 @@ class ProductService {
     };
   }
 
-  /**
-   * Get single product by ID
-   */
   async getProductById(id: string): Promise<ProductDocument> {
     const product = await Product.findById(id);
 
@@ -137,17 +112,11 @@ class ProductService {
     return product;
   }
 
-  /**
-   * Create new product
-   */
   async createProduct(data: CreateProductData): Promise<ProductDocument> {
     const product = await Product.create(data);
     return product;
   }
 
-  /**
-   * Update product
-   */
   async updateProduct(id: string, data: UpdateProductData): Promise<ProductDocument> {
     const product = await Product.findByIdAndUpdate(id, data, {
       new: true,
@@ -161,13 +130,9 @@ class ProductService {
     return product;
   }
 
-  /**
-   * Delete product (soft delete)
-   */
   async deleteProduct(id: string): Promise<ProductDocument> {
     const product = await this.getProductById(id);
 
-    // Check for active orders
     const activeOrders = await Order.find({
       'orderItems.product': id,
       status: { $in: ['Pending', 'Approved', 'Shipped'] },
@@ -181,7 +146,6 @@ class ProductService {
       });
     }
 
-    // Soft delete
     product.isDeleted = true;
     product.deletedAt = new Date();
     product.active = false;
@@ -191,9 +155,6 @@ class ProductService {
     return product;
   }
 
-  /**
-   * Soft delete product
-   */
   async softDeleteProduct(id: string): Promise<ProductDocument> {
     const product = await this.getProductById(id);
 
@@ -206,17 +167,11 @@ class ProductService {
     return product;
   }
 
-  /**
-   * Check if product exists
-   */
   async productExists(id: string): Promise<boolean> {
     const product = await Product.findById(id);
     return product !== null && !product.isDeleted;
   }
 
-  /**
-   * Update product stock
-   */
   async updateProductStock(productId: string, quantity: number): Promise<ProductDocument> {
     const product = await this.getProductById(productId);
 

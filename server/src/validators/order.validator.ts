@@ -1,12 +1,7 @@
 import { body, param, query } from 'express-validator';
 import { handleValidationErrors } from '../middleware/validation';
 
-/**
- * Order validation rules
- * Reusable validation middleware for order routes
- */
 
-// Create order validation
 export const validateCreateOrder = [
   body('fullName')
     .trim()
@@ -56,7 +51,6 @@ export const validateCreateOrder = [
   handleValidationErrors,
 ];
 
-// Update order status validation
 export const validateUpdateOrderStatus = [
   param('id')
     .trim()
@@ -72,7 +66,6 @@ export const validateUpdateOrderStatus = [
   handleValidationErrors,
 ];
 
-// Get order by ID validation
 export const validateOrderId = [
   param('id')
     .trim()
@@ -84,7 +77,6 @@ export const validateOrderId = [
   handleValidationErrors,
 ];
 
-// Order query validation
 export const validateOrderQuery = [
   query('page')
     .optional()

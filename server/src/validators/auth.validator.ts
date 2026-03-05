@@ -1,12 +1,7 @@
 import { body, param, query } from 'express-validator';
 import { handleValidationErrors } from '../middleware/validation';
 
-/**
- * Auth validation rules
- * Reusable validation middleware for authentication routes
- */
 
-// Register validation
 export const validateRegister = [
   body('name')
     .trim()
@@ -34,7 +29,6 @@ export const validateRegister = [
   handleValidationErrors,
 ];
 
-// Login validation
 export const validateLogin = [
   body('email')
     .trim()
@@ -49,7 +43,6 @@ export const validateLogin = [
   handleValidationErrors,
 ];
 
-// Refresh token validation
 export const validateRefreshToken = [
   body('refreshToken')
     .notEmpty()
@@ -60,7 +53,6 @@ export const validateRefreshToken = [
   handleValidationErrors,
 ];
 
-// Logout validation
 export const validateLogout = [
   body('refreshToken')
     .notEmpty()

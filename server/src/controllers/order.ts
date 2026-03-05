@@ -6,10 +6,6 @@ import { sendSuccessResponse, sendCreatedResponse, sendPaginatedResponse } from 
 import { AuthenticatedRequest } from '../middleware/auth';
 import { CreateOrderData, UpdateOrderStatusData } from '../services/order.service';
 
-/**
- * Create new order
- * POST /api/orders
- */
 export const createOrder = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user!.id;
   const orderData = req.body as CreateOrderData;
@@ -19,10 +15,6 @@ export const createOrder = asyncHandler(async (req: AuthenticatedRequest, res: R
   sendCreatedResponse(res, order, 'Order placed successfully');
 });
 
-/**
- * Get my orders
- * GET /api/orders/my?page=1&limit=10
- */
 export const getMyOrders = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user!.id;
   const page = parseInt(req.query.page as string, 10) || 1;
@@ -40,10 +32,6 @@ export const getMyOrders = asyncHandler(async (req: AuthenticatedRequest, res: R
   );
 });
 
-/**
- * Get all orders (admin)
- * GET /api/orders?page=1&limit=10&status=Pending
- */
 export const getOrders = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const page = parseInt(req.query.page as string, 10) || 1;
   const limit = parseInt(req.query.limit as string, 10) || 10;
@@ -61,10 +49,6 @@ export const getOrders = asyncHandler(async (req: AuthenticatedRequest, res: Res
   );
 });
 
-/**
- * Get order by ID
- * GET /api/orders/:id
- */
 export const getOrder = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user!.id;
   const isAdmin = req.user!.isAdmin;
@@ -80,10 +64,6 @@ export const getOrder = asyncHandler(async (req: AuthenticatedRequest, res: Resp
   );
 });
 
-/**
- * Update order status (admin)
- * PUT /api/orders/:id/status
- */
 export const updateOrderStatus = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { status } = req.body as UpdateOrderStatusData;
 
@@ -97,10 +77,6 @@ export const updateOrderStatus = asyncHandler(async (req: AuthenticatedRequest, 
   );
 });
 
-/**
- * Cancel order
- * POST /api/orders/:id/cancel
- */
 export const cancelOrder = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user!.id;
   const orderId = req.params.id as string;

@@ -5,16 +5,11 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { sendSuccessResponse } from '../utils/response';
 import { AuthenticatedRequest } from '../middleware/auth';
 
-/**
- * Register a new user
- * POST /api/auth/register
- */
 export const register = asyncHandler(async (req: Request, res: Response) => {
   const { name, email, password } = req.body;
 
   const result = await authService.register({ name, email, password });
 
-  // Include tokens directly in the response data
   const responseData = {
     user: result.user,
     accessToken: result.tokens.accessToken,
@@ -29,16 +24,11 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
-/**
- * Login user
- * POST /api/auth/login
- */
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
   const result = await authService.login({ email, password });
 
-  // Include tokens directly in the response data
   const responseData = {
     user: result.user,
     accessToken: result.tokens.accessToken,
@@ -53,10 +43,6 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
-/**
- * Refresh access token
- * POST /api/auth/refresh
- */
 export const refreshToken = asyncHandler(async (req: Request, res: Response) => {
   const { refreshToken } = req.body;
 
@@ -70,10 +56,6 @@ export const refreshToken = asyncHandler(async (req: Request, res: Response) => 
   );
 });
 
-/**
- * Logout user
- * POST /api/auth/logout
- */
 export const logout = asyncHandler(async (req: Request, res: Response) => {
   const { refreshToken } = req.body;
 
@@ -87,10 +69,6 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
-/**
- * Logout from all devices
- * POST /api/auth/logout-all
- */
 export const logoutAll = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user!.id;
 
@@ -104,10 +82,6 @@ export const logoutAll = asyncHandler(async (req: AuthenticatedRequest, res: Res
   );
 });
 
-/**
- * Get current user profile
- * GET /api/auth/me
- */
 export const getMe = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user!.id;
 

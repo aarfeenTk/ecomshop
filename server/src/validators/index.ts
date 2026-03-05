@@ -1,7 +1,3 @@
-/**
- * Validators index
- * Central export for all validation middleware
- */
 
 export * from './auth.validator';
 export * from './product.validator';

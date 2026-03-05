@@ -14,10 +14,6 @@ export interface AuthenticatedRequest extends Request {
   user?: AuthUser;
 }
 
-/**
- * Middleware to protect routes that require authentication
- * Validates access token and attaches user to request
- */
 export const protect = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     let token: string | undefined;
@@ -30,22 +26,18 @@ export const protect = async (req: AuthenticatedRequest, res: Response, next: Ne
       throw new UnauthorizedError('Access token is required');
     }
 
-    // Verify token
     const decoded = verifyAccessToken(token);
     
-    // Verify token type
     if (decoded.type && decoded.type !== 'access') {
       throw new UnauthorizedError('Invalid token type');
     }
 
-    // Find user
     const user = await User.findById(decoded.id);
 
     if (!user) {
       throw new UnauthorizedError('User not found');
     }
 
-    // Attach user to request
     req.user = {
       id: user._id.toString(),
       email: user.email,
@@ -58,10 +50,6 @@ export const protect = async (req: AuthenticatedRequest, res: Response, next: Ne
   }
 };
 
-/**
- * Middleware to authorize users based on role
- * Must be used after protect middleware
- */
 export const authorize = (...roles: string[]) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     try {
@@ -82,10 +70,6 @@ export const authorize = (...roles: string[]) => {
   };
 };
 
-/**
- * Optional authentication - attaches user if token is valid, but doesn't block
- * Useful for routes that have different behavior for logged-in vs anonymous users
- */
 export const optionalAuth = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     let token: string | undefined;
@@ -109,7 +93,6 @@ export const optionalAuth = async (req: AuthenticatedRequest, res: Response, nex
 
     next();
   } catch (error) {
-    // Token is invalid, but we continue without user
     next();
   }
 };
